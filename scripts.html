@@ -1,0 +1,761 @@
+<!--
+***
+MuyuReport - scripts.html - V1.06
+22/12/2025 - 12:08
+***
+-->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+/*
+***
+01. Variables Globales - scripts.html - V1.06-SV01
+***
+*/
+let lastSalesData = []; // Datos del último día
+let daySalesData = []; // Datos del día seleccionado
+let currentDayFilter = 'Todas'; // Filtro activo en "Por día"
+let displayedLastSales = 0;
+let displayedDaySales = 0;
+let currentChart = null;
+
+const MONTHS_NAMES = {
+  1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+  5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+  9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+};
+
+/*
+***
+02. Inicialización - scripts.html - V1.05-SV02
+***
+*/
+document.addEventListener('DOMContentLoaded', function() {
+  initializeTabs();
+  initializeSubTabs();
+  initializeLastSalesTab();
+  initializeDayTab();
+  initializeMonthlyTab();
+  initializeYearlyTab();
+  initializeChartsTab();
+  initializeCollapseButtons();
+});
+
+/*
+***
+03. Sistema de Pestañas Principales - scripts.html - V1.05-SV03
+***
+*/
+function initializeTabs() {
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+  
+  tabButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const targetTab = this.getAttribute('data-tab');
+      
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      this.classList.add('active');
+      document.getElementById(targetTab).classList.add('active');
+    });
+  });
+}
+
+/*
+***
+04. Sistema de Sub-pestañas - scripts.html - V1.05-SV04
+***
+*/
+function initializeSubTabs() {
+  const subTabButtons = document.querySelectorAll('.sub-tab-btn');
+  
+  subTabButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const targetSubTab = this.getAttribute('data-subtab');
+      const parentSection = this.closest('section');
+      
+      // Remover active de botones hermanos
+      const siblings = this.parentElement.querySelectorAll('.sub-tab-btn');
+      siblings.forEach(btn => btn.classList.remove('active'));
+      
+      // Remover active de contenidos hermanos
+      const contents = parentSection.querySelectorAll('.sub-tab-content');
+      contents.forEach(content => content.classList.remove('active'));
+      
+      // Activar seleccionados
+      this.classList.add('active');
+      document.getElementById(targetSubTab).classList.add('active');
+    });
+  });
+}
+
+/*
+***
+05. Sub-pestaña: Últimas Ventas - scripts.html - V1.05-SV05
+***
+*/
+function initializeLastSalesTab() {
+  loadLastSales();
+  
+  const btnRefresh = document.getElementById('btn-refresh');
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', function() {
+      refreshLastSales();
+    });
+  }
+  
+  const btnLoadMore = document.getElementById('btn-load-more');
+  if (btnLoadMore) {
+    btnLoadMore.addEventListener('click', function() {
+      displayMoreLastSales();
+    });
+  }
+}
+
+function loadLastSales() {
+  LoaderSystem.show('Cargando últimas ventas...');
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      LoaderSystem.hide();
+      
+      if (response.success) {
+        lastSalesData = response.data;
+        displayedLastSales = 0;
+        
+        // Actualizar header
+        updateLastDayHeader(response);
+        
+        // Renderizar tabla
+        renderLastSalesTable();
+      } else {
+        ModalSystem.error('No se pudieron cargar las ventas');
+      }
+    })
+    .withFailureHandler(function(error) {
+      LoaderSystem.hide();
+      ModalSystem.error('Error de conexión con el servidor');
+      console.log('Error:', error);
+    })
+    .getLastRecords();
+}
+
+function refreshLastSales() {
+  lastSalesData = [];
+  displayedLastSales = 0;
+  document.getElementById('sales-tbody').innerHTML = '';
+  loadLastSales();
+}
+
+function updateLastDayHeader(response) {
+  const dateEl = document.getElementById('last-day-date-full');
+  const amountEl = document.getElementById('last-day-amount');
+  const breakdownEl = document.getElementById('last-day-breakdown');
+  
+  // Fecha con día de semana
+  dateEl.textContent = `${response.dayOfWeek} ${response.lastDate}`;
+  
+  // Total
+  amountEl.textContent = formatNumber(response.total);
+  
+  // Desglose
+  const breakdown = [];
+  if (response.breakdown.Yape > 0) breakdown.push(`Yape ${formatNumber(response.breakdown.Yape)}`);
+  if (response.breakdown.Efectivo > 0) breakdown.push(`Cash ${formatNumber(response.breakdown.Efectivo)}`);
+  if (response.breakdown.Tarjeta > 0) breakdown.push(`Card ${formatNumber(response.breakdown.Tarjeta)}`);
+  
+  breakdownEl.textContent = breakdown.length > 0 ? ': ' + breakdown.join(' / ') : '';
+}
+
+function renderLastSalesTable() {
+  const tbody = document.getElementById('sales-tbody');
+  const toDisplay = Math.min(displayedLastSales + 10, lastSalesData.length);
+  
+  if (displayedLastSales === 0) {
+    tbody.innerHTML = '';
+  }
+  
+  for (let i = displayedLastSales; i < toDisplay; i++) {
+    const sale = lastSalesData[i];
+    const row = tbody.insertRow();
+    row.classList.add('fade-in');
+    
+    row.innerHTML = `
+      <td>${sale.categoria}</td>
+      <td>${sale.producto}</td>
+      <td>${sale.medioPago}</td>
+      <td>${formatNumber(sale.total)}</td>
+    `;
+  }
+  
+  displayedLastSales = toDisplay;
+  
+  // Manejo de botón y mensaje
+  const btnLoadMore = document.getElementById('btn-load-more');
+  const noMoreMsg = document.getElementById('no-more-msg');
+  
+  if (displayedLastSales >= lastSalesData.length) {
+    btnLoadMore.classList.add('hidden');
+    noMoreMsg.classList.remove('hidden');
+  } else {
+    btnLoadMore.classList.remove('hidden');
+    noMoreMsg.classList.add('hidden');
+  }
+  
+  if (lastSalesData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="no-data">No hay ventas registradas</td></tr>';
+  }
+}
+
+function displayMoreLastSales() {
+  if (displayedLastSales < lastSalesData.length) {
+    renderLastSalesTable();
+  }
+}
+
+/*
+***
+06. Sub-pestaña: Por día - scripts.html - V1.05-SV06
+***
+*/
+function initializeDayTab() {
+  const btnApply = document.getElementById('btn-apply-date');
+  if (btnApply) {
+    btnApply.addEventListener('click', function() {
+      applyDateFilter();
+    });
+  }
+  
+  const filterButtons = document.querySelectorAll('.filter-btn');
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      filterButtons.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      const filter = this.getAttribute('data-filter');
+      filterDaySales(filter);
+    });
+  });
+  
+  const btnLoadMoreDay = document.getElementById('btn-load-more-day');
+  if (btnLoadMoreDay) {
+    btnLoadMoreDay.addEventListener('click', function() {
+      displayMoreDaySales();
+    });
+  }
+  
+  // Cargar hoy por defecto
+  setTimeout(() => applyDateFilter(), 500);
+}
+
+function applyDateFilter() {
+  const dateInput = document.getElementById('date-input').value;
+  
+  if (!dateInput || !dateInput.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+    ModalSystem.warning('Ingresa una fecha válida (DD/MM/AAAA)');
+    return;
+  }
+  
+  // Obtener filtro activo
+  const activeFilter = document.querySelector('.filter-btn.active');
+  const medioPago = activeFilter ? activeFilter.getAttribute('data-filter') : 'Todas';
+  
+  loadDaySales(dateInput, medioPago);
+}
+
+function filterDaySales(medioPago) {
+  const dateInput = document.getElementById('date-input').value;
+  
+  if (!dateInput) {
+    ModalSystem.warning('Primero selecciona una fecha');
+    return;
+  }
+  
+  currentDayFilter = medioPago; // Guardar filtro activo
+  loadDaySales(dateInput, medioPago);
+}
+
+function loadDaySales(fecha, medioPago) {
+  LoaderSystem.show('Cargando ventas del día...');
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      LoaderSystem.hide();
+      
+      if (response.success) {
+        daySalesData = response.data;
+        displayedDaySales = 0;
+        
+        // Actualizar header
+        updateDayHeader(response);
+        
+        // Renderizar tabla
+        renderDaySalesTable();
+      } else {
+        ModalSystem.error('No se pudieron cargar las ventas');
+      }
+    })
+    .withFailureHandler(function(error) {
+      LoaderSystem.hide();
+      ModalSystem.error('Error de conexión con el servidor');
+      console.log('Error:', error);
+    })
+    .getSalesByDay(fecha, medioPago);
+}
+
+function updateDayHeader(response) {
+  const dateEl = document.getElementById('day-date-full');
+  const amountEl = document.getElementById('day-amount');
+  const breakdownEl = document.getElementById('day-breakdown');
+  
+  dateEl.textContent = `${response.dayOfWeek} ${response.fecha}`;
+  amountEl.textContent = formatNumber(response.total);
+  
+  const breakdown = [];
+  if (response.breakdown.Yape > 0) breakdown.push(`Yape ${formatNumber(response.breakdown.Yape)}`);
+  if (response.breakdown.Efectivo > 0) breakdown.push(`Cash ${formatNumber(response.breakdown.Efectivo)}`);
+  if (response.breakdown.Tarjeta > 0) breakdown.push(`Card ${formatNumber(response.breakdown.Tarjeta)}`);
+  
+  breakdownEl.textContent = breakdown.length > 0 ? ': ' + breakdown.join(' / ') : '';
+}
+
+function renderDaySalesTable() {
+  const tbody = document.getElementById('day-sales-tbody');
+  const thead = document.querySelector('#day-sales-table thead tr');
+  const toDisplay = Math.min(displayedDaySales + 10, daySalesData.length);
+  
+  if (displayedDaySales === 0) {
+    tbody.innerHTML = '';
+    
+    // Actualizar encabezados según filtro
+    if (currentDayFilter === 'Todas') {
+      thead.innerHTML = `
+        <th>Categoría</th>
+        <th>Producto</th>
+        <th>Medio</th>
+        <th>Monto</th>
+      `;
+    } else {
+      thead.innerHTML = `
+        <th>Categoría</th>
+        <th>Producto</th>
+        <th>Monto</th>
+      `;
+    }
+  }
+  
+  for (let i = displayedDaySales; i < toDisplay; i++) {
+    const sale = daySalesData[i];
+    const row = tbody.insertRow();
+    row.classList.add('fade-in');
+    
+    if (currentDayFilter === 'Todas') {
+      row.innerHTML = `
+        <td>${sale.categoria}</td>
+        <td>${sale.producto}</td>
+        <td>${sale.medioPago || ''}</td>
+        <td>${formatNumber(sale.total)}</td>
+      `;
+    } else {
+      row.innerHTML = `
+        <td>${sale.categoria}</td>
+        <td>${sale.producto}</td>
+        <td>${formatNumber(sale.total)}</td>
+      `;
+    }
+  }
+  
+  displayedDaySales = toDisplay;
+  
+  const btnLoadMore = document.getElementById('btn-load-more-day');
+  if (displayedDaySales >= daySalesData.length) {
+    btnLoadMore.style.display = 'none';
+  } else {
+    btnLoadMore.style.display = 'block';
+  }
+  
+  const colspan = currentDayFilter === 'Todas' ? '4' : '3';
+  if (daySalesData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${colspan}" class="no-data">No hay ventas este día</td></tr>`;
+  }
+}
+
+function displayMoreDaySales() {
+  if (displayedDaySales < daySalesData.length) {
+    renderDaySalesTable();
+  }
+}
+
+/*
+***
+07. Sub-pestaña: Ranking Cat. - scripts.html - V1.05-SV07
+***
+*/
+function initializeMonthlyTab() {
+  const btnGenerate = document.getElementById('btn-generate-monthly');
+  
+  if (btnGenerate) {
+    btnGenerate.addEventListener('click', function() {
+      generateMonthlyReport();
+    });
+  }
+}
+
+function generateMonthlyReport() {
+  const year = parseInt(document.getElementById('year-input').value);
+  const selectedMonths = getSelectedMonths('#ranking-cat');
+  
+  if (selectedMonths.length === 0) {
+    ModalSystem.warning('Selecciona al menos un mes');
+    return;
+  }
+  
+  LoaderSystem.show('Generando reporte mensual...');
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      LoaderSystem.hide();
+      
+      if (response.success) {
+        renderMonthlyRankings(response.data, selectedMonths);
+      } else {
+        ModalSystem.error('No se pudo generar el reporte');
+      }
+    })
+    .withFailureHandler(function(error) {
+      LoaderSystem.hide();
+      ModalSystem.error('Error al generar el reporte');
+      console.log('Error:', error);
+    })
+    .getMonthlyData(year, selectedMonths);
+}
+
+function renderMonthlyRankings(data, selectedMonths) {
+  const container = document.getElementById('monthly-rankings');
+  container.innerHTML = '';
+  
+  selectedMonths.forEach(month => {
+    const monthData = data[month];
+    
+    if (!monthData) return;
+    
+    const monthDiv = document.createElement('div');
+    monthDiv.classList.add('month-ranking', 'fade-in');
+    
+    let rankingHTML = `
+      <div class="month-ranking-header">
+        <div class="month-ranking-title">${MONTHS_NAMES[month]}</div>
+        <div class="month-ranking-total">
+          Total: <strong>${formatNumber(monthData.total)}</strong>
+        </div>
+      </div>
+      <ol class="ranking-list">
+    `;
+    
+    monthData.ranking.forEach(item => {
+      const isResto = item.categoria === 'Resto';
+      rankingHTML += `
+        <li class="ranking-item ${isResto ? 'otros' : ''}">
+          <span class="ranking-position">${item.posicion}.</span>
+          <span class="ranking-category">${item.categoria}</span>
+          <span class="ranking-total">${formatNumber(item.total)}</span>
+        </li>
+      `;
+    });
+    
+    rankingHTML += '</ol>';
+    monthDiv.innerHTML = rankingHTML;
+    container.appendChild(monthDiv);
+  });
+  
+  if (selectedMonths.length === 0) {
+    container.innerHTML = '<div class="no-data">Selecciona meses para ver el ranking</div>';
+  }
+}
+
+/*
+***
+08. Sub-pestaña: Ventas x mes - scripts.html - V1.05-SV08
+***
+*/
+function initializeYearlyTab() {
+  const btnGenerate = document.getElementById('btn-generate-yearly');
+  
+  if (btnGenerate) {
+    btnGenerate.addEventListener('click', function() {
+      generateYearlyReport();
+    });
+  }
+}
+
+function generateYearlyReport() {
+  const year = parseInt(document.getElementById('year-input-ventas').value);
+  
+  LoaderSystem.show('Generando reporte anual...');
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      LoaderSystem.hide();
+      
+      if (response.success) {
+        renderYearlySales(response.data, response.totalYear, year);
+      } else {
+        ModalSystem.error('No se pudo generar el reporte');
+      }
+    })
+    .withFailureHandler(function(error) {
+      LoaderSystem.hide();
+      ModalSystem.error('Error al generar el reporte');
+      console.log('Error:', error);
+    })
+    .getYearlySales(year);
+}
+
+function renderYearlySales(data, totalYear, year) {
+  const tbody = document.getElementById('yearly-sales-tbody');
+  tbody.innerHTML = '';
+  
+  // Mostrar total anual
+  const yearCard = document.getElementById('year-total-card');
+  const yearDisplay = document.getElementById('year-display');
+  const yearAmount = document.getElementById('year-total-amount');
+  
+  yearDisplay.textContent = year;
+  yearAmount.textContent = formatNumber(totalYear);
+  yearCard.classList.remove('hidden');
+  
+  // Renderizar tabla
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="no-data">No hay ventas registradas este año</td></tr>';
+    return;
+  }
+  
+  data.forEach(monthData => {
+    const row = tbody.insertRow();
+    row.classList.add('fade-in');
+    
+    row.innerHTML = `
+      <td>${MONTHS_NAMES[monthData.month]}</td>
+      <td>${formatNumber(monthData.Yape)}</td>
+      <td>${formatNumber(monthData.Efectivo)}</td>
+      <td>${formatNumber(monthData.Tarjeta)}</td>
+      <td>${formatNumber(monthData.total)}</td>
+    `;
+  });
+}
+
+/*
+***
+09. Pestaña Gráficos - scripts.html - V1.05-SV09
+***
+*/
+function initializeChartsTab() {
+  const btnGenerate = document.getElementById('btn-generate-chart');
+  
+  if (btnGenerate) {
+    btnGenerate.addEventListener('click', function() {
+      generateChart();
+    });
+  }
+}
+
+function generateChart() {
+  const year = parseInt(document.getElementById('chart-year-input').value);
+  const selectedMonths = getSelectedMonths('#graficos');
+  
+  if (selectedMonths.length === 0) {
+    ModalSystem.warning('Selecciona al menos un mes');
+    return;
+  }
+  
+  LoaderSystem.show('Generando gráfico...');
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      LoaderSystem.hide();
+      
+      if (response.success) {
+        renderChart(response.data, selectedMonths);
+      } else {
+        ModalSystem.error('No se pudo generar el gráfico');
+      }
+    })
+    .withFailureHandler(function(error) {
+      LoaderSystem.hide();
+      ModalSystem.error('Error al generar el gráfico');
+      console.log('Error:', error);
+    })
+    .getChartData(year, selectedMonths);
+}
+
+function renderChart(data, selectedMonths) {
+  const ctx = document.getElementById('sales-chart').getContext('2d');
+  
+  if (currentChart) {
+    currentChart.destroy();
+  }
+  
+  const datasets = selectedMonths.map((month, index) => {
+    const monthData = data[month];
+    const color = getColorByIndex(index);
+    
+    return {
+      label: `${MONTHS_NAMES[month]} (${formatNumber(monthData.total)})`,
+      data: [
+        monthData.weeks.S1,
+        monthData.weeks.S2,
+        monthData.weeks.S3,
+        monthData.weeks.S4
+      ],
+      borderColor: color,
+      backgroundColor: color,
+      tension: 0.3,
+      pointRadius: 5,
+      pointHoverRadius: 7
+    };
+  });
+  
+  currentChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['S1 (1-7)', 'S2 (8-14)', 'S3 (15-21)', 'S4 (22-fin)'],
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth > 1024 ? 2.5 : 1.5,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            font: {
+              size: window.innerWidth > 1024 ? 13 : 11
+            },
+            padding: 12,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.dataset.label.split('(')[0] + ': ' + formatNumber(context.parsed.y);
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return formatNumber(value);
+            },
+            font: {
+              size: window.innerWidth > 1024 ? 12 : 10
+            }
+          }
+        },
+        x: {
+          ticks: {
+            font: {
+              size: window.innerWidth > 1024 ? 12 : 10
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/*
+***
+10. Botones Colapsar - scripts.html - V1.05-SV10
+***
+*/
+function initializeCollapseButtons() {
+  const btnCollapseMonthly = document.getElementById('btn-collapse-monthly');
+  const monthSelectorMensual = document.getElementById('month-selector-mensual');
+  
+  if (btnCollapseMonthly && monthSelectorMensual) {
+    btnCollapseMonthly.addEventListener('click', function() {
+      toggleCollapse(this, monthSelectorMensual);
+    });
+  }
+  
+  const btnCollapseChart = document.getElementById('btn-collapse-chart');
+  const monthSelectorGraficos = document.getElementById('month-selector-graficos');
+  
+  if (btnCollapseChart && monthSelectorGraficos) {
+    btnCollapseChart.addEventListener('click', function() {
+      toggleCollapse(this, monthSelectorGraficos);
+    });
+  }
+}
+
+function toggleCollapse(button, selector) {
+  const isCollapsed = selector.classList.contains('collapsed');
+  const icon = button.querySelector('.collapse-icon');
+  
+  if (isCollapsed) {
+    selector.classList.remove('collapsed');
+    button.classList.remove('collapsed');
+    icon.textContent = '▼';
+  } else {
+    selector.classList.add('collapsed');
+    button.classList.add('collapsed');
+    icon.textContent = '▲';
+  }
+}
+
+/*
+***
+11. Funciones Auxiliares - scripts.html - V1.05-SV11
+***
+*/
+function getSelectedMonths(section) {
+  const checkboxes = document.querySelectorAll(`${section} .month-check input[type="checkbox"]:checked, ${section} .chart-month:checked`);
+  return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+function formatNumber(num) {
+  if (num === null || num === undefined) return '0.00';
+  return parseFloat(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+const COLOR_PALETTE = [
+  '#1E90FF', // 1. Azul vivo
+  '#FFD700', // 2. Amarillo vivo
+  '#FF0000', // 3. Rojo vivo
+  '#006400', // 4. Verde oscuro
+  '#808080', // 5. Gris
+  '#000000', // 6. Negro
+  '#FF00FF', // 7. Magenta
+  '#FFFF99', // 8. Amarillo suave
+  '#87CEEB', // 9. Celeste
+  '#FFC0CB', // 10. Rosa
+  '#00FF8C', // 11. Verde pálido
+  '#FF1493'  // 12. Rosa vívido/Pink
+];
+
+function getColorByIndex(index) {
+  return COLOR_PALETTE[index % COLOR_PALETTE.length];
+}
+
+/*
+***
+12. Manejo de Resize - scripts.html - V1.05-SV12
+***
+*/
+window.addEventListener('resize', function() {
+  if (currentChart) {
+    currentChart.options.aspectRatio = window.innerWidth > 1024 ? 2.5 : 1.5;
+    currentChart.update();
+  }
+});
+
+console.log('MuyuReport scripts.html V1.06 cargado correctamente');
+</script>
