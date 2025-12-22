@@ -1,0 +1,3459 @@
+// ============================================
+// SOLID CODE - MUYUREPORT
+// Generado: 22/12/2025, 12:19:00 p. m.
+// Total de archivos: 6
+// ============================================
+
+
+
+// ============================================
+// ARCHIVO 1/6: code.gs
+// URL: https://raw.githubusercontent.com/koki81pe/MuyuReport/refs/heads/main/code.gs
+// ============================================
+
+/*
+***
+MuyuReport - code.gs - V1.07
+22/12/2025 - 12:08
+***
+*/
+
+/*
+***
+01. Configuración Global - code.gs - V1.01-SV01
+***
+*/
+const CONFIG = {
+  SHEET_URL: 'https://docs.google.com/spreadsheets/d/1lZ8OEIfeUvHqxWsVHYy4W1ow2VpIYCvTr9YFAxDkCCU/edit?usp=sharing',
+  SHEET_NAME: 'Ventas',
+  BATCH_SIZE: 100, // Registros a cargar por bloque
+  INITIAL_DISPLAY: 5 // Registros iniciales a mostrar
+};
+
+/*
+***
+02. Función Principal - Servir HTML - code.gs - V1.03-SV02
+***
+*/
+function doGet() {
+  return HtmlService.createTemplateFromFile('home')
+    .evaluate()
+    .setTitle('MuyuReport - Dashboard de Ventas')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
+}
+
+/*
+***
+03. Incluir Archivos HTML - code.gs - V1.01-SV03
+***
+*/
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+/*
+***
+04. Obtener Registros del Último Día - code.gs - V1.07-SV04
+***
+*/
+function getLastRecords(cantidad = CONFIG.BATCH_SIZE) {
+  try {
+    const sheet = getSheet();
+    const lastRow = getLastValidRow(sheet);
+    
+    if (lastRow < 2) {
+      return { success: true, data: [], total: 0, lastDate: '', dayOfWeek: '', breakdown: {} };
+    }
+    
+    // Leer últimos 200 registros para asegurar capturar todo el último día
+    const startRow = Math.max(2, lastRow - 199);
+    const numRows = lastRow - startRow + 1;
+    const range = sheet.getRange(startRow, 1, numRows, 7);
+    const values = range.getDisplayValues();
+    
+    // Obtener la última fecha válida
+    let lastDate = null;
+    for (let i = values.length - 1; i >= 0; i--) {
+      if (values[i][0] && values[i][2]) { // Fecha y Producto válidos
+        lastDate = values[i][0];
+        break;
+      }
+    }
+    
+    if (!lastDate) {
+      return { success: true, data: [], total: 0, lastDate: '', dayOfWeek: '', breakdown: {} };
+    }
+    
+    // Filtrar solo registros del último día y procesar
+    const records = [];
+    const breakdown = { Yape: 0, Efectivo: 0, Tarjeta: 0 };
+    let totalDay = 0;
+    
+    for (let i = values.length - 1; i >= 0; i--) {
+      const fecha = values[i][0];
+      const categoria = values[i][1] || '';
+      const producto = values[i][2] || '';
+      const medioPago = values[i][3] || '';
+      const total = parseFloat(values[i][6]) || 0;
+      
+      if (fecha === lastDate && producto) {
+        records.push({
+          categoria: categoria,
+          producto: producto,
+          medioPago: medioPago,
+          total: total
+        });
+        
+        // Acumular por medio de pago
+        if (medioPago === 'Yape') breakdown.Yape += total;
+        else if (medioPago === 'Efectivo') breakdown.Efectivo += total;
+        else if (medioPago === 'Tarjeta') breakdown.Tarjeta += total;
+        
+        totalDay += total;
+      }
+    }
+    
+    // Calcular día de la semana
+    const dayOfWeek = getDayOfWeek(lastDate);
+    
+    return {
+      success: true,
+      data: records,
+      total: totalDay,
+      lastDate: lastDate,
+      dayOfWeek: dayOfWeek,
+      breakdown: breakdown
+    };
+    
+  } catch (error) {
+    console.log('Error en getLastRecords: ' + error.toString());
+    return {
+      success: false,
+      error: 'Error al obtener registros',
+      message: error.toString()
+    };
+  }
+}
+
+/*
+***
+05. Obtener Ventas de un Día Específico - code.gs - V1.07-SV05
+***
+*/
+function getSalesByDay(fecha, medioPago = 'Todas') {
+  try {
+    const sheet = getSheet();
+    const lastRow = getLastValidRow(sheet);
+    
+    if (lastRow < 2) {
+      return { success: true, data: [], total: 0, breakdown: {} };
+    }
+    
+    // Leer todos los datos
+    const range = sheet.getRange(2, 1, lastRow - 1, 7);
+    const values = range.getDisplayValues();
+    
+    // Filtrar por fecha y medio de pago
+    const records = [];
+    const breakdown = { Yape: 0, Efectivo: 0, Tarjeta: 0 };
+    let totalDay = 0;
+    
+    values.forEach(row => {
+      const rowFecha = row[0];
+      const categoria = row[1] || '';
+      const producto = row[2] || '';
+      const rowMedioPago = row[3] || '';
+      const total = parseFloat(row[6]) || 0;
+      
+      if (rowFecha === fecha && producto) {
+        // Acumular totales por medio de pago
+        if (rowMedioPago === 'Yape') breakdown.Yape += total;
+        else if (rowMedioPago === 'Efectivo') breakdown.Efectivo += total;
+        else if (rowMedioPago === 'Tarjeta') breakdown.Tarjeta += total;
+        
+        totalDay += total;
+        
+        // Filtrar por medio de pago si no es "Todas"
+        if (medioPago === 'Todas' || rowMedioPago === medioPago) {
+          // Si es "Todas", incluir medioPago; si no, omitirlo
+          if (medioPago === 'Todas') {
+            records.push({
+              categoria: categoria,
+              producto: producto,
+              medioPago: rowMedioPago,
+              total: total
+            });
+          } else {
+            records.push({
+              categoria: categoria,
+              producto: producto,
+              total: total
+            });
+          }
+        }
+      }
+    });
+    
+    // Calcular día de la semana
+    const dayOfWeek = getDayOfWeek(fecha);
+    
+    return {
+      success: true,
+      data: records,
+      total: totalDay,
+      breakdown: breakdown,
+      fecha: fecha,
+      dayOfWeek: dayOfWeek
+    };
+    
+  } catch (error) {
+    console.log('Error en getSalesByDay: ' + error.toString());
+    return {
+      success: false,
+      error: 'Error al obtener ventas del día'
+    };
+  }
+}
+
+/*
+***
+06. Obtener Datos Mensuales - code.gs - V1.06-SV06
+***
+*/
+function getMonthlyData(year, months) {
+  try {
+    const sheet = getSheet();
+    const lastRow = getLastValidRow(sheet);
+    
+    if (lastRow < 2) {
+      return { success: true, data: {} };
+    }
+    
+    // Leer todos los datos como TEXTO VISUAL
+    const range = sheet.getRange(2, 1, lastRow - 1, 7);
+    const values = range.getDisplayValues();
+    
+    // Procesar por mes
+    const monthlyData = {};
+    
+    months.forEach(month => {
+      const categories = {};
+      let totalMes = 0;
+      
+      values.forEach(row => {
+        const fecha = row[0]; // Ya es texto "9/6/2025" o "09/06/2025"
+        const producto = row[2];
+        
+        if (!fecha || !producto) return;
+        
+        // Verificar si pertenece al mes/año
+        const parts = fecha.split('/');
+        if (parts.length === 3) {
+          const rowMonth = parseInt(parts[1]); // Convertir a número: "6" o "06" → 6
+          const rowYear = parseInt(parts[2]);
+          
+          // Comparar números directamente
+          if (rowMonth === month && rowYear === year) {
+            const categoria = row[1] || 'Sin categoría';
+            const total = parseFloat(row[6]) || 0;
+            
+            if (!categories[categoria]) {
+              categories[categoria] = 0;
+            }
+            categories[categoria] += total;
+            totalMes += total;
+          }
+        }
+      });
+      
+      // Ordenar categorías y obtener top 10
+      const sortedCategories = Object.entries(categories)
+        .sort((a, b) => b[1] - a[1]);
+      
+      const top10 = sortedCategories.slice(0, 10);
+      const others = sortedCategories.slice(10);
+      
+      let othersTotal = 0;
+      others.forEach(([cat, val]) => {
+        othersTotal += val;
+      });
+      
+      const ranking = top10.map(([cat, val], index) => ({
+        posicion: index + 1,
+        categoria: cat,
+        total: val
+      }));
+      
+      if (othersTotal > 0) {
+        ranking.push({
+          posicion: 11,
+          categoria: 'Resto',
+          total: othersTotal
+        });
+      }
+      
+      monthlyData[month] = {
+        total: totalMes,
+        ranking: ranking
+      };
+    });
+    
+    return {
+      success: true,
+      data: monthlyData
+    };
+    
+  } catch (error) {
+    console.log('Error en getMonthlyData: ' + error.toString());
+    return {
+      success: false,
+      error: 'Error al obtener datos mensuales'
+    };
+  }
+}
+
+/*
+***
+07. Obtener Datos para Gráficos - code.gs - V1.06-SV07
+***
+*/
+function getChartData(year, months) {
+  try {
+    const sheet = getSheet();
+    const lastRow = getLastValidRow(sheet);
+    
+    if (lastRow < 2) {
+      return { success: true, data: {} };
+    }
+    
+    // Leer todos los datos como TEXTO VISUAL
+    const range = sheet.getRange(2, 1, lastRow - 1, 7);
+    const values = range.getDisplayValues();
+    
+    const chartData = {};
+    
+    months.forEach(month => {
+      // Inicializar semanas
+      const weeks = {
+        S1: 0, // días 1-7
+        S2: 0, // días 8-14
+        S3: 0, // días 15-21
+        S4: 0  // días 22-fin
+      };
+      
+      let totalMes = 0;
+      
+      values.forEach(row => {
+        const fecha = row[0]; // Ya es texto "9/6/2025" o "09/06/2025"
+        const producto = row[2];
+        
+        if (!fecha || !producto) return;
+        
+        const parts = fecha.split('/');
+        if (parts.length === 3) {
+          const day = parseInt(parts[0]);
+          const rowMonth = parseInt(parts[1]); // Convertir a número
+          const rowYear = parseInt(parts[2]);
+          
+          // Comparar números directamente
+          if (rowMonth === month && rowYear === year) {
+            const total = parseFloat(row[6]) || 0;
+            totalMes += total;
+            
+            // Asignar a semana
+            if (day >= 1 && day <= 7) {
+              weeks.S1 += total;
+            } else if (day >= 8 && day <= 14) {
+              weeks.S2 += total;
+            } else if (day >= 15 && day <= 21) {
+              weeks.S3 += total;
+            } else {
+              weeks.S4 += total;
+            }
+          }
+        }
+      });
+      
+      chartData[month] = {
+        total: totalMes,
+        weeks: weeks
+      };
+    });
+    
+    return {
+      success: true,
+      data: chartData
+    };
+    
+  } catch (error) {
+    console.log('Error en getChartData: ' + error.toString());
+    return {
+      success: false,
+      error: 'Error al obtener datos de gráficos'
+    };
+  }
+}
+
+/*
+***
+08. Obtener Ventas Anuales por Mes - code.gs - V1.07-SV08
+***
+*/
+function getYearlySales(year) {
+  try {
+    const sheet = getSheet();
+    const lastRow = getLastValidRow(sheet);
+    
+    if (lastRow < 2) {
+      return { success: true, data: [], totalYear: 0 };
+    }
+    
+    // Leer todos los datos
+    const range = sheet.getRange(2, 1, lastRow - 1, 7);
+    const values = range.getDisplayValues();
+    
+    // Objeto para acumular por mes
+    const monthlyData = {};
+    let totalYear = 0;
+    
+    values.forEach(row => {
+      const fecha = row[0];
+      const producto = row[2];
+      const medioPago = row[3] || '';
+      const total = parseFloat(row[6]) || 0;
+      
+      if (!fecha || !producto) return;
+      
+      const parts = fecha.split('/');
+      if (parts.length === 3) {
+        const rowMonth = parseInt(parts[1]);
+        const rowYear = parseInt(parts[2]);
+        
+        if (rowYear === year) {
+          if (!monthlyData[rowMonth]) {
+            monthlyData[rowMonth] = {
+              month: rowMonth,
+              Yape: 0,
+              Efectivo: 0,
+              Tarjeta: 0,
+              total: 0
+            };
+          }
+          
+          // Acumular por medio de pago
+          if (medioPago === 'Yape') monthlyData[rowMonth].Yape += total;
+          else if (medioPago === 'Efectivo') monthlyData[rowMonth].Efectivo += total;
+          else if (medioPago === 'Tarjeta') monthlyData[rowMonth].Tarjeta += total;
+          
+          monthlyData[rowMonth].total += total;
+          totalYear += total;
+        }
+      }
+    });
+    
+    // Convertir a array ordenado
+    const monthsArray = Object.values(monthlyData).sort((a, b) => a.month - b.month);
+    
+    return {
+      success: true,
+      data: monthsArray,
+      totalYear: totalYear
+    };
+    
+  } catch (error) {
+    console.log('Error en getYearlySales: ' + error.toString());
+    return {
+      success: false,
+      error: 'Error al obtener ventas anuales'
+    };
+  }
+}
+
+/*
+***
+09. Funciones Auxiliares - code.gs - V1.07-SV09
+***
+*/
+function getSheet() {
+  const ss = SpreadsheetApp.openByUrl(CONFIG.SHEET_URL);
+  return ss.getSheetByName(CONFIG.SHEET_NAME);
+}
+
+function getLastValidRow(sheet) {
+  const column = sheet.getRange('A:A').getValues();
+  let lastRow = 0;
+  
+  for (let i = column.length - 1; i >= 0; i--) {
+    if (column[i][0]) {
+      lastRow = i + 1;
+      break;
+    }
+  }
+  
+  return lastRow;
+}
+
+function getDayOfWeek(fecha) {
+  // fecha viene como "21/12/2025"
+  const parts = fecha.split('/');
+  if (parts.length !== 3) return '';
+  
+  const day = parseInt(parts[0]);
+  const month = parseInt(parts[1]) - 1; // JS months are 0-indexed
+  const year = parseInt(parts[2]);
+  
+  const date = new Date(year, month, day);
+  const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  
+  return days[date.getDay()];
+}
+
+
+// ============================================
+// ARCHIVO 2/6: home.html
+// URL: https://raw.githubusercontent.com/koki81pe/MuyuReport/refs/heads/main/home.html
+// ============================================
+
+<!--
+***
+MuyuReport - home.html - V1.04
+22/12/2025 - 11:46
+***
+-->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MuyuReport - Dashboard</title>
+  <?!= include('style'); ?>
+</head>
+<body>
+
+  <!--
+  ***
+  01. Header Principal - home.html - V1.04-SV01
+  ***
+  -->
+  <header class="main-header">
+    <h1>MuyuReport</h1>
+    <p class="subtitle">Dashboard de Ventas</p>
+  </header>
+
+  <!--
+  ***
+  02. Navegación Principal - home.html - V1.04-SV02
+  ***
+  -->
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-tab="diarias">Diarias</button>
+    <button class="tab-btn" data-tab="mensual">Mensual</button>
+    <button class="tab-btn" data-tab="graficos">Gráficos</button>
+  </nav>
+
+  <!--
+  ***
+  03. Contenedor Principal - home.html - V1.04-SV03
+  ***
+  -->
+  <main class="main-container">
+
+    <!--
+    ***
+    04. PESTAÑA: DIARIAS - home.html - V1.04-SV04
+    ***
+    -->
+    <section id="diarias" class="tab-content active">
+      
+      <!-- Sub-pestañas de Diarias -->
+      <nav class="sub-tabs-nav">
+        <button class="sub-tab-btn active" data-subtab="ultimas-ventas">Últimas Ventas</button>
+        <button class="sub-tab-btn" data-subtab="por-dia">Por día</button>
+      </nav>
+
+      <!--
+      ***
+      04a. SUB-PESTAÑA: Últimas Ventas - home.html - V1.04-SV04a
+      ***
+      -->
+      <div id="ultimas-ventas" class="sub-tab-content active">
+        
+        <!-- Total del último día -->
+        <div class="last-day-total">
+          <div class="total-card">
+            <span class="total-label">Total del último día</span>
+            <span class="total-date" id="last-day-date-full">Lunes 22/12/2025</span>
+            <div class="total-breakdown">
+              <span class="total-amount" id="last-day-amount">0.00</span>
+              <span class="breakdown-text" id="last-day-breakdown"></span>
+            </div>
+          </div>
+          <button class="btn-refresh" id="btn-refresh">
+            <span class="refresh-icon">↻</span> Refrescar
+          </button>
+        </div>
+
+        <!-- Tabla de últimas ventas -->
+        <div class="sales-table-container">
+          <table class="sales-table" id="sales-table">
+            <thead>
+              <tr>
+                <th>Categoría</th>
+                <th>Producto</th>
+                <th>Medio</th>
+                <th>Monto</th>
+              </tr>
+            </thead>
+            <tbody id="sales-tbody">
+              <!-- Registros se cargan dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Botón cargar más / Mensaje -->
+        <div class="load-more-container">
+          <button class="btn-load-more" id="btn-load-more">
+            Cargar 10 más
+          </button>
+          <p class="no-more-msg hidden" id="no-more-msg">No hay más ventas este día</p>
+        </div>
+
+      </div>
+
+      <!--
+      ***
+      04b. SUB-PESTAÑA: Por día - home.html - V1.04-SV04b
+      ***
+      -->
+      <div id="por-dia" class="sub-tab-content">
+        
+        <!-- Selector de fecha -->
+        <div class="date-selector">
+          <label for="date-input">Fecha:</label>
+          <input type="text" id="date-input" placeholder="DD/MM/AAAA" maxlength="10">
+          <button class="btn-apply" id="btn-apply-date">Aplicar</button>
+        </div>
+
+        <!-- Filtros por medio de pago -->
+        <div class="payment-filters">
+          <button class="filter-btn active" data-filter="Todas">Todas</button>
+          <button class="filter-btn" data-filter="Yape">Yape</button>
+          <button class="filter-btn" data-filter="Efectivo">Cash</button>
+          <button class="filter-btn" data-filter="Tarjeta">Card</button>
+        </div>
+
+        <!-- Total del día -->
+        <div class="day-total-card">
+          <span class="total-label">Total del día</span>
+          <span class="total-date" id="day-date-full">Lunes 22/12/2025</span>
+          <div class="total-breakdown">
+            <span class="total-amount" id="day-amount">0.00</span>
+            <span class="breakdown-text" id="day-breakdown"></span>
+          </div>
+        </div>
+
+        <!-- Tabla de ventas del día -->
+        <div class="sales-table-container">
+          <table class="sales-table" id="day-sales-table">
+            <thead>
+              <tr>
+                <th>Categoría</th>
+                <th>Producto</th>
+                <th>Monto</th>
+              </tr>
+            </thead>
+            <tbody id="day-sales-tbody">
+              <!-- Registros se cargan dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Botón cargar más -->
+        <div class="load-more-container">
+          <button class="btn-load-more" id="btn-load-more-day">
+            Cargar 10 más
+          </button>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!--
+    ***
+    05. PESTAÑA: MENSUAL - home.html - V1.04-SV05
+    ***
+    -->
+    <section id="mensual" class="tab-content">
+      
+      <!-- Sub-pestañas de Mensual -->
+      <nav class="sub-tabs-nav">
+        <button class="sub-tab-btn active" data-subtab="ranking-cat">Ranking Cat.</button>
+        <button class="sub-tab-btn" data-subtab="ventas-mes">Ventas x mes</button>
+      </nav>
+
+      <!--
+      ***
+      05a. SUB-PESTAÑA: Ranking Cat. - home.html - V1.04-SV05a
+      ***
+      -->
+      <div id="ranking-cat" class="sub-tab-content active">
+        
+        <!-- Selector de año -->
+        <div class="year-selector">
+          <label for="year-input">Año:</label>
+          <input type="number" id="year-input" value="2024" min="2020" max="2030">
+        </div>
+
+        <!-- Botón colapsar meses -->
+        <button class="btn-collapse-months" id="btn-collapse-monthly">
+          <span class="collapse-icon">▼</span> Seleccionar meses
+        </button>
+
+        <!-- Selector de meses con checkboxes -->
+        <div class="month-selector" id="month-selector-mensual">
+          <label class="month-check">
+            <input type="checkbox" value="1"> Enero
+          </label>
+          <label class="month-check">
+            <input type="checkbox" value="2"> Febrero
+          </label>
+          <label class="month-check">
+            <input type="checkbox" value="3"> Marzo
+          </label>
+          <label class="month-check">
+            <input type="checkbox" value="4"> Abril
+          </label>
+          <label class="month-check">
+            <input type="checkbox" value="5"> Mayo
+          </label>
+          <label class="month-check">
+            <input type="checkbox" value="6"> Junio
+          </label>
+          <label class="month-check">
+            <input type="checkbox" value="7"> Julio
+          </label>
+          <label class="month-check">
+            <input type="checkbox" value="8"> Agosto
+          </label>
+          <label class="month-check">
+            <input type="checkbox" value="9"> Septiembre
+          </label>
+          <label class="month-check">
+            <input type="checkbox" value="10"> Octubre
+          </label>
+          <label class="month-check">
+            <input type="checkbox" value="11"> Noviembre
+          </label>
+          <label class="month-check">
+            <input type="checkbox" value="12"> Diciembre
+          </label>
+        </div>
+
+        <!-- Botón para generar reporte -->
+        <div class="action-container">
+          <button class="btn-generate" id="btn-generate-monthly">
+            Ver Ranking Mensual
+          </button>
+        </div>
+
+        <!-- Contenedor de rankings mensuales -->
+        <div class="monthly-rankings" id="monthly-rankings">
+          <!-- Rankings se cargan dinámicamente -->
+        </div>
+
+      </div>
+
+      <!--
+      ***
+      05b. SUB-PESTAÑA: Ventas x mes - home.html - V1.04-SV05b
+      ***
+      -->
+      <div id="ventas-mes" class="sub-tab-content">
+        
+        <!-- Selector de año -->
+        <div class="year-selector">
+          <label for="year-input-ventas">Año:</label>
+          <input type="number" id="year-input-ventas" value="2024" min="2020" max="2030">
+        </div>
+
+        <!-- Botón para generar reporte -->
+        <div class="action-container">
+          <button class="btn-generate" id="btn-generate-yearly">
+            Ver Ventas del Año
+          </button>
+        </div>
+
+        <!-- Total anual -->
+        <div class="year-total-card hidden" id="year-total-card">
+          <span class="year-total-label">Total del año <span id="year-display">2025</span>:</span>
+          <span class="year-total-amount" id="year-total-amount">0.00</span>
+        </div>
+
+        <!-- Tabla de ventas por mes -->
+        <div class="sales-table-container">
+          <table class="sales-table" id="yearly-sales-table">
+            <thead>
+              <tr>
+                <th>Mes</th>
+                <th>Yape</th>
+                <th>Cash</th>
+                <th>Card</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="yearly-sales-tbody">
+              <!-- Registros se cargan dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!--
+    ***
+    06. PESTAÑA: GRÁFICOS - home.html - V1.04-SV06
+    ***
+    -->
+    <section id="graficos" class="tab-content">
+      
+      <!-- Selector de año -->
+      <div class="year-selector">
+        <label for="chart-year-input">Año:</label>
+        <input type="number" id="chart-year-input" value="2024" min="2020" max="2030">
+      </div>
+
+      <!-- Botón colapsar meses -->
+      <button class="btn-collapse-months" id="btn-collapse-chart">
+        <span class="collapse-icon">▼</span> Seleccionar meses
+      </button>
+
+      <!-- Selector de meses -->
+      <div class="month-selector" id="month-selector-graficos">
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="1"> Enero
+        </label>
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="2"> Febrero
+        </label>
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="3"> Marzo
+        </label>
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="4"> Abril
+        </label>
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="5"> Mayo
+        </label>
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="6"> Junio
+        </label>
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="7"> Julio
+        </label>
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="8"> Agosto
+        </label>
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="9"> Septiembre
+        </label>
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="10"> Octubre
+        </label>
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="11"> Noviembre
+        </label>
+        <label class="month-check">
+          <input type="checkbox" class="chart-month" value="12"> Diciembre
+        </label>
+      </div>
+
+      <!-- Botón para generar gráfico -->
+      <div class="action-container">
+        <button class="btn-generate" id="btn-generate-chart">
+          Generar Gráfico
+        </button>
+      </div>
+
+      <!-- Contenedor del gráfico -->
+      <div class="chart-container">
+        <canvas id="sales-chart"></canvas>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!--
+  ***
+  07. Modals y Scripts - home.html - V1.04-SV07
+  ***
+  -->
+  <?!= include('modals'); ?>
+  <?!= include('scripts'); ?>
+
+  <!--
+  ***
+  08. Script de Año Dinámico - home.html - V1.04-SV08
+  ***
+  -->
+  <script>
+    // Establecer año actual dinámicamente
+    const currentYear = new Date().getFullYear();
+    
+    // Pestaña Mensual - Ranking
+    document.getElementById('year-input').value = currentYear;
+    document.getElementById('year-input').min = currentYear - 5;
+    document.getElementById('year-input').max = currentYear + 5;
+    
+    // Pestaña Mensual - Ventas x mes
+    document.getElementById('year-input-ventas').value = currentYear;
+    document.getElementById('year-input-ventas').min = currentYear - 5;
+    document.getElementById('year-input-ventas').max = currentYear + 5;
+    
+    // Pestaña Gráficos
+    document.getElementById('chart-year-input').value = currentYear;
+    document.getElementById('chart-year-input').min = currentYear - 5;
+    document.getElementById('chart-year-input').max = currentYear + 5;
+    
+    // Establecer fecha de hoy en "Por día"
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    document.getElementById('date-input').value = `${dd}/${mm}/${yyyy}`;
+  </script>
+
+</body>
+</html>
+
+
+// ============================================
+// ARCHIVO 3/6: modals.html
+// URL: https://raw.githubusercontent.com/koki81pe/MuyuReport/refs/heads/main/modals.html
+// ============================================
+
+<!--
+***
+MuyuReport - modals.html - V1.01
+22/12/2025 - 11:46
+***
+-->
+
+<!--
+***
+01. Estructura del Modal - modals.html - V1.01-SV01
+***
+-->
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-content">
+      <div class="modal-icon" id="modal-icon">
+        <!-- Icono se inserta dinámicamente -->
+      </div>
+      <div class="modal-message" id="modal-message">
+        <!-- Mensaje se inserta dinámicamente -->
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn" id="modal-btn-confirm">Entendido</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--
+***
+02. Loader (Indicador de Carga) - modals.html - V1.01-SV02
+***
+-->
+<div id="loader-overlay" class="loader-overlay">
+  <div class="loader-container">
+    <div class="spinner"></div>
+    <p class="loader-text">Cargando datos...</p>
+  </div>
+</div>
+
+<style>
+/*
+***
+03. Estilos del Modal Overlay - modals.html - V1.01-SV03
+***
+*/
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+/*
+***
+04. Estilos del Contenedor del Modal - modals.html - V1.01-SV04
+***
+*/
+.modal-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 400px;
+  width: 90%;
+  margin: 16px;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/*
+***
+05. Estilos del Contenido del Modal - modals.html - V1.01-SV05
+***
+*/
+.modal-content {
+  padding: 24px;
+  text-align: center;
+}
+
+.modal-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  line-height: 1;
+}
+
+.modal-icon.success {
+  color: #059669;
+}
+
+.modal-icon.error {
+  color: #dc2626;
+}
+
+.modal-icon.warning {
+  color: #f59e0b;
+}
+
+.modal-icon.info {
+  color: #2563eb;
+}
+
+.modal-message {
+  font-size: 15px;
+  color: #1f2937;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.modal-message strong {
+  display: block;
+  font-size: 17px;
+  margin-bottom: 8px;
+  color: #111827;
+}
+
+/*
+***
+06. Estilos de Botones del Modal - modals.html - V1.01-SV06
+***
+*/
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.modal-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 100px;
+}
+
+.modal-btn-primary {
+  background-color: #2563eb;
+  color: white;
+}
+
+.modal-btn-primary:hover {
+  background-color: #1e40af;
+}
+
+.modal-btn-secondary {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.modal-btn-secondary:hover {
+  background-color: #d1d5db;
+}
+
+.modal-btn:active {
+  transform: scale(0.98);
+}
+
+/*
+***
+07. Estilos del Loader - modals.html - V1.01-SV07
+***
+*/
+.loader-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.9);
+  z-index: 9998;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-overlay.active {
+  display: flex;
+}
+
+.loader-container {
+  text-align: center;
+}
+
+/*
+***
+08. Spinner Animado - modals.html - V1.01-SV08
+***
+*/
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loader-text {
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/*
+***
+09. Responsive para Desktop - modals.html - V1.01-SV09
+***
+*/
+@media (min-width: 1024px) {
+  .modal-container {
+    max-width: 450px;
+  }
+
+  .modal-content {
+    padding: 32px;
+  }
+
+  .modal-icon {
+    font-size: 56px;
+  }
+
+  .modal-message {
+    font-size: 16px;
+  }
+
+  .modal-message strong {
+    font-size: 18px;
+  }
+}
+</style>
+
+<script>
+/*
+***
+10. Funciones del Sistema de Modals - modals.html - V1.01-SV10
+***
+*/
+
+// Objeto global para manejar modals
+window.ModalSystem = {
+  
+  // Mostrar modal con mensaje
+  show: function(message, type = 'info', title = '') {
+    const overlay = document.getElementById('modal-overlay');
+    const icon = document.getElementById('modal-icon');
+    const messageEl = document.getElementById('modal-message');
+    
+    // Definir iconos según tipo
+    const icons = {
+      success: '✓',
+      error: '✕',
+      warning: '⚠',
+      info: 'ℹ'
+    };
+    
+    // Actualizar contenido
+    icon.textContent = icons[type] || icons.info;
+    icon.className = 'modal-icon ' + type;
+    
+    if (title) {
+      messageEl.innerHTML = '<strong>' + title + '</strong>' + message;
+    } else {
+      messageEl.innerHTML = message;
+    }
+    
+    // Mostrar modal
+    overlay.classList.add('active');
+  },
+  
+  // Cerrar modal
+  close: function() {
+    const overlay = document.getElementById('modal-overlay');
+    overlay.classList.remove('active');
+  },
+  
+  // Mostrar éxito
+  success: function(message, title = 'Éxito') {
+    this.show(message, 'success', title);
+  },
+  
+  // Mostrar error
+  error: function(message, title = 'Error') {
+    this.show(message, 'error', title);
+  },
+  
+  // Mostrar advertencia
+  warning: function(message, title = 'Atención') {
+    this.show(message, 'warning', title);
+  },
+  
+  // Mostrar información
+  info: function(message, title = '') {
+    this.show(message, 'info', title);
+  }
+};
+
+// Objeto global para manejar loader
+window.LoaderSystem = {
+  
+  show: function(message = 'Cargando datos...') {
+    const overlay = document.getElementById('loader-overlay');
+    const text = overlay.querySelector('.loader-text');
+    text.textContent = message;
+    overlay.classList.add('active');
+  },
+  
+  hide: function() {
+    const overlay = document.getElementById('loader-overlay');
+    overlay.classList.remove('active');
+  }
+};
+
+/*
+***
+11. Event Listeners - modals.html - V1.01-SV11
+***
+*/
+document.addEventListener('DOMContentLoaded', function() {
+  
+  // Cerrar modal al hacer clic en el botón
+  const btnConfirm = document.getElementById('modal-btn-confirm');
+  if (btnConfirm) {
+    btnConfirm.addEventListener('click', function() {
+      ModalSystem.close();
+    });
+  }
+  
+  // Cerrar modal al hacer clic fuera del contenido
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) {
+        ModalSystem.close();
+      }
+    });
+  }
+  
+  // Cerrar modal con tecla Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      ModalSystem.close();
+    }
+  });
+  
+});
+</script>
+
+
+// ============================================
+// ARCHIVO 4/6: scripts.html
+// URL: https://raw.githubusercontent.com/koki81pe/MuyuReport/refs/heads/main/scripts.html
+// ============================================
+
+<!--
+***
+MuyuReport - scripts.html - V1.06
+22/12/2025 - 12:08
+***
+-->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+/*
+***
+01. Variables Globales - scripts.html - V1.06-SV01
+***
+*/
+let lastSalesData = []; // Datos del último día
+let daySalesData = []; // Datos del día seleccionado
+let currentDayFilter = 'Todas'; // Filtro activo en "Por día"
+let displayedLastSales = 0;
+let displayedDaySales = 0;
+let currentChart = null;
+
+const MONTHS_NAMES = {
+  1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+  5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+  9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+};
+
+/*
+***
+02. Inicialización - scripts.html - V1.05-SV02
+***
+*/
+document.addEventListener('DOMContentLoaded', function() {
+  initializeTabs();
+  initializeSubTabs();
+  initializeLastSalesTab();
+  initializeDayTab();
+  initializeMonthlyTab();
+  initializeYearlyTab();
+  initializeChartsTab();
+  initializeCollapseButtons();
+});
+
+/*
+***
+03. Sistema de Pestañas Principales - scripts.html - V1.05-SV03
+***
+*/
+function initializeTabs() {
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+  
+  tabButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const targetTab = this.getAttribute('data-tab');
+      
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      this.classList.add('active');
+      document.getElementById(targetTab).classList.add('active');
+    });
+  });
+}
+
+/*
+***
+04. Sistema de Sub-pestañas - scripts.html - V1.05-SV04
+***
+*/
+function initializeSubTabs() {
+  const subTabButtons = document.querySelectorAll('.sub-tab-btn');
+  
+  subTabButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const targetSubTab = this.getAttribute('data-subtab');
+      const parentSection = this.closest('section');
+      
+      // Remover active de botones hermanos
+      const siblings = this.parentElement.querySelectorAll('.sub-tab-btn');
+      siblings.forEach(btn => btn.classList.remove('active'));
+      
+      // Remover active de contenidos hermanos
+      const contents = parentSection.querySelectorAll('.sub-tab-content');
+      contents.forEach(content => content.classList.remove('active'));
+      
+      // Activar seleccionados
+      this.classList.add('active');
+      document.getElementById(targetSubTab).classList.add('active');
+    });
+  });
+}
+
+/*
+***
+05. Sub-pestaña: Últimas Ventas - scripts.html - V1.05-SV05
+***
+*/
+function initializeLastSalesTab() {
+  loadLastSales();
+  
+  const btnRefresh = document.getElementById('btn-refresh');
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', function() {
+      refreshLastSales();
+    });
+  }
+  
+  const btnLoadMore = document.getElementById('btn-load-more');
+  if (btnLoadMore) {
+    btnLoadMore.addEventListener('click', function() {
+      displayMoreLastSales();
+    });
+  }
+}
+
+function loadLastSales() {
+  LoaderSystem.show('Cargando últimas ventas...');
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      LoaderSystem.hide();
+      
+      if (response.success) {
+        lastSalesData = response.data;
+        displayedLastSales = 0;
+        
+        // Actualizar header
+        updateLastDayHeader(response);
+        
+        // Renderizar tabla
+        renderLastSalesTable();
+      } else {
+        ModalSystem.error('No se pudieron cargar las ventas');
+      }
+    })
+    .withFailureHandler(function(error) {
+      LoaderSystem.hide();
+      ModalSystem.error('Error de conexión con el servidor');
+      console.log('Error:', error);
+    })
+    .getLastRecords();
+}
+
+function refreshLastSales() {
+  lastSalesData = [];
+  displayedLastSales = 0;
+  document.getElementById('sales-tbody').innerHTML = '';
+  loadLastSales();
+}
+
+function updateLastDayHeader(response) {
+  const dateEl = document.getElementById('last-day-date-full');
+  const amountEl = document.getElementById('last-day-amount');
+  const breakdownEl = document.getElementById('last-day-breakdown');
+  
+  // Fecha con día de semana
+  dateEl.textContent = `${response.dayOfWeek} ${response.lastDate}`;
+  
+  // Total
+  amountEl.textContent = formatNumber(response.total);
+  
+  // Desglose
+  const breakdown = [];
+  if (response.breakdown.Yape > 0) breakdown.push(`Yape ${formatNumber(response.breakdown.Yape)}`);
+  if (response.breakdown.Efectivo > 0) breakdown.push(`Cash ${formatNumber(response.breakdown.Efectivo)}`);
+  if (response.breakdown.Tarjeta > 0) breakdown.push(`Card ${formatNumber(response.breakdown.Tarjeta)}`);
+  
+  breakdownEl.textContent = breakdown.length > 0 ? ': ' + breakdown.join(' / ') : '';
+}
+
+function renderLastSalesTable() {
+  const tbody = document.getElementById('sales-tbody');
+  const toDisplay = Math.min(displayedLastSales + 10, lastSalesData.length);
+  
+  if (displayedLastSales === 0) {
+    tbody.innerHTML = '';
+  }
+  
+  for (let i = displayedLastSales; i < toDisplay; i++) {
+    const sale = lastSalesData[i];
+    const row = tbody.insertRow();
+    row.classList.add('fade-in');
+    
+    row.innerHTML = `
+      <td>${sale.categoria}</td>
+      <td>${sale.producto}</td>
+      <td>${sale.medioPago}</td>
+      <td>${formatNumber(sale.total)}</td>
+    `;
+  }
+  
+  displayedLastSales = toDisplay;
+  
+  // Manejo de botón y mensaje
+  const btnLoadMore = document.getElementById('btn-load-more');
+  const noMoreMsg = document.getElementById('no-more-msg');
+  
+  if (displayedLastSales >= lastSalesData.length) {
+    btnLoadMore.classList.add('hidden');
+    noMoreMsg.classList.remove('hidden');
+  } else {
+    btnLoadMore.classList.remove('hidden');
+    noMoreMsg.classList.add('hidden');
+  }
+  
+  if (lastSalesData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="no-data">No hay ventas registradas</td></tr>';
+  }
+}
+
+function displayMoreLastSales() {
+  if (displayedLastSales < lastSalesData.length) {
+    renderLastSalesTable();
+  }
+}
+
+/*
+***
+06. Sub-pestaña: Por día - scripts.html - V1.05-SV06
+***
+*/
+function initializeDayTab() {
+  const btnApply = document.getElementById('btn-apply-date');
+  if (btnApply) {
+    btnApply.addEventListener('click', function() {
+      applyDateFilter();
+    });
+  }
+  
+  const filterButtons = document.querySelectorAll('.filter-btn');
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      filterButtons.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      const filter = this.getAttribute('data-filter');
+      filterDaySales(filter);
+    });
+  });
+  
+  const btnLoadMoreDay = document.getElementById('btn-load-more-day');
+  if (btnLoadMoreDay) {
+    btnLoadMoreDay.addEventListener('click', function() {
+      displayMoreDaySales();
+    });
+  }
+  
+  // Cargar hoy por defecto
+  setTimeout(() => applyDateFilter(), 500);
+}
+
+function applyDateFilter() {
+  const dateInput = document.getElementById('date-input').value;
+  
+  if (!dateInput || !dateInput.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+    ModalSystem.warning('Ingresa una fecha válida (DD/MM/AAAA)');
+    return;
+  }
+  
+  // Obtener filtro activo
+  const activeFilter = document.querySelector('.filter-btn.active');
+  const medioPago = activeFilter ? activeFilter.getAttribute('data-filter') : 'Todas';
+  
+  loadDaySales(dateInput, medioPago);
+}
+
+function filterDaySales(medioPago) {
+  const dateInput = document.getElementById('date-input').value;
+  
+  if (!dateInput) {
+    ModalSystem.warning('Primero selecciona una fecha');
+    return;
+  }
+  
+  currentDayFilter = medioPago; // Guardar filtro activo
+  loadDaySales(dateInput, medioPago);
+}
+
+function loadDaySales(fecha, medioPago) {
+  LoaderSystem.show('Cargando ventas del día...');
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      LoaderSystem.hide();
+      
+      if (response.success) {
+        daySalesData = response.data;
+        displayedDaySales = 0;
+        
+        // Actualizar header
+        updateDayHeader(response);
+        
+        // Renderizar tabla
+        renderDaySalesTable();
+      } else {
+        ModalSystem.error('No se pudieron cargar las ventas');
+      }
+    })
+    .withFailureHandler(function(error) {
+      LoaderSystem.hide();
+      ModalSystem.error('Error de conexión con el servidor');
+      console.log('Error:', error);
+    })
+    .getSalesByDay(fecha, medioPago);
+}
+
+function updateDayHeader(response) {
+  const dateEl = document.getElementById('day-date-full');
+  const amountEl = document.getElementById('day-amount');
+  const breakdownEl = document.getElementById('day-breakdown');
+  
+  dateEl.textContent = `${response.dayOfWeek} ${response.fecha}`;
+  amountEl.textContent = formatNumber(response.total);
+  
+  const breakdown = [];
+  if (response.breakdown.Yape > 0) breakdown.push(`Yape ${formatNumber(response.breakdown.Yape)}`);
+  if (response.breakdown.Efectivo > 0) breakdown.push(`Cash ${formatNumber(response.breakdown.Efectivo)}`);
+  if (response.breakdown.Tarjeta > 0) breakdown.push(`Card ${formatNumber(response.breakdown.Tarjeta)}`);
+  
+  breakdownEl.textContent = breakdown.length > 0 ? ': ' + breakdown.join(' / ') : '';
+}
+
+function renderDaySalesTable() {
+  const tbody = document.getElementById('day-sales-tbody');
+  const thead = document.querySelector('#day-sales-table thead tr');
+  const toDisplay = Math.min(displayedDaySales + 10, daySalesData.length);
+  
+  if (displayedDaySales === 0) {
+    tbody.innerHTML = '';
+    
+    // Actualizar encabezados según filtro
+    if (currentDayFilter === 'Todas') {
+      thead.innerHTML = `
+        <th>Categoría</th>
+        <th>Producto</th>
+        <th>Medio</th>
+        <th>Monto</th>
+      `;
+    } else {
+      thead.innerHTML = `
+        <th>Categoría</th>
+        <th>Producto</th>
+        <th>Monto</th>
+      `;
+    }
+  }
+  
+  for (let i = displayedDaySales; i < toDisplay; i++) {
+    const sale = daySalesData[i];
+    const row = tbody.insertRow();
+    row.classList.add('fade-in');
+    
+    if (currentDayFilter === 'Todas') {
+      row.innerHTML = `
+        <td>${sale.categoria}</td>
+        <td>${sale.producto}</td>
+        <td>${sale.medioPago || ''}</td>
+        <td>${formatNumber(sale.total)}</td>
+      `;
+    } else {
+      row.innerHTML = `
+        <td>${sale.categoria}</td>
+        <td>${sale.producto}</td>
+        <td>${formatNumber(sale.total)}</td>
+      `;
+    }
+  }
+  
+  displayedDaySales = toDisplay;
+  
+  const btnLoadMore = document.getElementById('btn-load-more-day');
+  if (displayedDaySales >= daySalesData.length) {
+    btnLoadMore.style.display = 'none';
+  } else {
+    btnLoadMore.style.display = 'block';
+  }
+  
+  const colspan = currentDayFilter === 'Todas' ? '4' : '3';
+  if (daySalesData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${colspan}" class="no-data">No hay ventas este día</td></tr>`;
+  }
+}
+
+function displayMoreDaySales() {
+  if (displayedDaySales < daySalesData.length) {
+    renderDaySalesTable();
+  }
+}
+
+/*
+***
+07. Sub-pestaña: Ranking Cat. - scripts.html - V1.05-SV07
+***
+*/
+function initializeMonthlyTab() {
+  const btnGenerate = document.getElementById('btn-generate-monthly');
+  
+  if (btnGenerate) {
+    btnGenerate.addEventListener('click', function() {
+      generateMonthlyReport();
+    });
+  }
+}
+
+function generateMonthlyReport() {
+  const year = parseInt(document.getElementById('year-input').value);
+  const selectedMonths = getSelectedMonths('#ranking-cat');
+  
+  if (selectedMonths.length === 0) {
+    ModalSystem.warning('Selecciona al menos un mes');
+    return;
+  }
+  
+  LoaderSystem.show('Generando reporte mensual...');
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      LoaderSystem.hide();
+      
+      if (response.success) {
+        renderMonthlyRankings(response.data, selectedMonths);
+      } else {
+        ModalSystem.error('No se pudo generar el reporte');
+      }
+    })
+    .withFailureHandler(function(error) {
+      LoaderSystem.hide();
+      ModalSystem.error('Error al generar el reporte');
+      console.log('Error:', error);
+    })
+    .getMonthlyData(year, selectedMonths);
+}
+
+function renderMonthlyRankings(data, selectedMonths) {
+  const container = document.getElementById('monthly-rankings');
+  container.innerHTML = '';
+  
+  selectedMonths.forEach(month => {
+    const monthData = data[month];
+    
+    if (!monthData) return;
+    
+    const monthDiv = document.createElement('div');
+    monthDiv.classList.add('month-ranking', 'fade-in');
+    
+    let rankingHTML = `
+      <div class="month-ranking-header">
+        <div class="month-ranking-title">${MONTHS_NAMES[month]}</div>
+        <div class="month-ranking-total">
+          Total: <strong>${formatNumber(monthData.total)}</strong>
+        </div>
+      </div>
+      <ol class="ranking-list">
+    `;
+    
+    monthData.ranking.forEach(item => {
+      const isResto = item.categoria === 'Resto';
+      rankingHTML += `
+        <li class="ranking-item ${isResto ? 'otros' : ''}">
+          <span class="ranking-position">${item.posicion}.</span>
+          <span class="ranking-category">${item.categoria}</span>
+          <span class="ranking-total">${formatNumber(item.total)}</span>
+        </li>
+      `;
+    });
+    
+    rankingHTML += '</ol>';
+    monthDiv.innerHTML = rankingHTML;
+    container.appendChild(monthDiv);
+  });
+  
+  if (selectedMonths.length === 0) {
+    container.innerHTML = '<div class="no-data">Selecciona meses para ver el ranking</div>';
+  }
+}
+
+/*
+***
+08. Sub-pestaña: Ventas x mes - scripts.html - V1.05-SV08
+***
+*/
+function initializeYearlyTab() {
+  const btnGenerate = document.getElementById('btn-generate-yearly');
+  
+  if (btnGenerate) {
+    btnGenerate.addEventListener('click', function() {
+      generateYearlyReport();
+    });
+  }
+}
+
+function generateYearlyReport() {
+  const year = parseInt(document.getElementById('year-input-ventas').value);
+  
+  LoaderSystem.show('Generando reporte anual...');
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      LoaderSystem.hide();
+      
+      if (response.success) {
+        renderYearlySales(response.data, response.totalYear, year);
+      } else {
+        ModalSystem.error('No se pudo generar el reporte');
+      }
+    })
+    .withFailureHandler(function(error) {
+      LoaderSystem.hide();
+      ModalSystem.error('Error al generar el reporte');
+      console.log('Error:', error);
+    })
+    .getYearlySales(year);
+}
+
+function renderYearlySales(data, totalYear, year) {
+  const tbody = document.getElementById('yearly-sales-tbody');
+  tbody.innerHTML = '';
+  
+  // Mostrar total anual
+  const yearCard = document.getElementById('year-total-card');
+  const yearDisplay = document.getElementById('year-display');
+  const yearAmount = document.getElementById('year-total-amount');
+  
+  yearDisplay.textContent = year;
+  yearAmount.textContent = formatNumber(totalYear);
+  yearCard.classList.remove('hidden');
+  
+  // Renderizar tabla
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="no-data">No hay ventas registradas este año</td></tr>';
+    return;
+  }
+  
+  data.forEach(monthData => {
+    const row = tbody.insertRow();
+    row.classList.add('fade-in');
+    
+    row.innerHTML = `
+      <td>${MONTHS_NAMES[monthData.month]}</td>
+      <td>${formatNumber(monthData.Yape)}</td>
+      <td>${formatNumber(monthData.Efectivo)}</td>
+      <td>${formatNumber(monthData.Tarjeta)}</td>
+      <td>${formatNumber(monthData.total)}</td>
+    `;
+  });
+}
+
+/*
+***
+09. Pestaña Gráficos - scripts.html - V1.05-SV09
+***
+*/
+function initializeChartsTab() {
+  const btnGenerate = document.getElementById('btn-generate-chart');
+  
+  if (btnGenerate) {
+    btnGenerate.addEventListener('click', function() {
+      generateChart();
+    });
+  }
+}
+
+function generateChart() {
+  const year = parseInt(document.getElementById('chart-year-input').value);
+  const selectedMonths = getSelectedMonths('#graficos');
+  
+  if (selectedMonths.length === 0) {
+    ModalSystem.warning('Selecciona al menos un mes');
+    return;
+  }
+  
+  LoaderSystem.show('Generando gráfico...');
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      LoaderSystem.hide();
+      
+      if (response.success) {
+        renderChart(response.data, selectedMonths);
+      } else {
+        ModalSystem.error('No se pudo generar el gráfico');
+      }
+    })
+    .withFailureHandler(function(error) {
+      LoaderSystem.hide();
+      ModalSystem.error('Error al generar el gráfico');
+      console.log('Error:', error);
+    })
+    .getChartData(year, selectedMonths);
+}
+
+function renderChart(data, selectedMonths) {
+  const ctx = document.getElementById('sales-chart').getContext('2d');
+  
+  if (currentChart) {
+    currentChart.destroy();
+  }
+  
+  const datasets = selectedMonths.map((month, index) => {
+    const monthData = data[month];
+    const color = getColorByIndex(index);
+    
+    return {
+      label: `${MONTHS_NAMES[month]} (${formatNumber(monthData.total)})`,
+      data: [
+        monthData.weeks.S1,
+        monthData.weeks.S2,
+        monthData.weeks.S3,
+        monthData.weeks.S4
+      ],
+      borderColor: color,
+      backgroundColor: color,
+      tension: 0.3,
+      pointRadius: 5,
+      pointHoverRadius: 7
+    };
+  });
+  
+  currentChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['S1 (1-7)', 'S2 (8-14)', 'S3 (15-21)', 'S4 (22-fin)'],
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth > 1024 ? 2.5 : 1.5,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            font: {
+              size: window.innerWidth > 1024 ? 13 : 11
+            },
+            padding: 12,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.dataset.label.split('(')[0] + ': ' + formatNumber(context.parsed.y);
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return formatNumber(value);
+            },
+            font: {
+              size: window.innerWidth > 1024 ? 12 : 10
+            }
+          }
+        },
+        x: {
+          ticks: {
+            font: {
+              size: window.innerWidth > 1024 ? 12 : 10
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/*
+***
+10. Botones Colapsar - scripts.html - V1.05-SV10
+***
+*/
+function initializeCollapseButtons() {
+  const btnCollapseMonthly = document.getElementById('btn-collapse-monthly');
+  const monthSelectorMensual = document.getElementById('month-selector-mensual');
+  
+  if (btnCollapseMonthly && monthSelectorMensual) {
+    btnCollapseMonthly.addEventListener('click', function() {
+      toggleCollapse(this, monthSelectorMensual);
+    });
+  }
+  
+  const btnCollapseChart = document.getElementById('btn-collapse-chart');
+  const monthSelectorGraficos = document.getElementById('month-selector-graficos');
+  
+  if (btnCollapseChart && monthSelectorGraficos) {
+    btnCollapseChart.addEventListener('click', function() {
+      toggleCollapse(this, monthSelectorGraficos);
+    });
+  }
+}
+
+function toggleCollapse(button, selector) {
+  const isCollapsed = selector.classList.contains('collapsed');
+  const icon = button.querySelector('.collapse-icon');
+  
+  if (isCollapsed) {
+    selector.classList.remove('collapsed');
+    button.classList.remove('collapsed');
+    icon.textContent = '▼';
+  } else {
+    selector.classList.add('collapsed');
+    button.classList.add('collapsed');
+    icon.textContent = '▲';
+  }
+}
+
+/*
+***
+11. Funciones Auxiliares - scripts.html - V1.05-SV11
+***
+*/
+function getSelectedMonths(section) {
+  const checkboxes = document.querySelectorAll(`${section} .month-check input[type="checkbox"]:checked, ${section} .chart-month:checked`);
+  return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+function formatNumber(num) {
+  if (num === null || num === undefined) return '0.00';
+  return parseFloat(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+const COLOR_PALETTE = [
+  '#1E90FF', // 1. Azul vivo
+  '#FFD700', // 2. Amarillo vivo
+  '#FF0000', // 3. Rojo vivo
+  '#006400', // 4. Verde oscuro
+  '#808080', // 5. Gris
+  '#000000', // 6. Negro
+  '#FF00FF', // 7. Magenta
+  '#FFFF99', // 8. Amarillo suave
+  '#87CEEB', // 9. Celeste
+  '#FFC0CB', // 10. Rosa
+  '#00FF8C', // 11. Verde pálido
+  '#FF1493'  // 12. Rosa vívido/Pink
+];
+
+function getColorByIndex(index) {
+  return COLOR_PALETTE[index % COLOR_PALETTE.length];
+}
+
+/*
+***
+12. Manejo de Resize - scripts.html - V1.05-SV12
+***
+*/
+window.addEventListener('resize', function() {
+  if (currentChart) {
+    currentChart.options.aspectRatio = window.innerWidth > 1024 ? 2.5 : 1.5;
+    currentChart.update();
+  }
+});
+
+console.log('MuyuReport scripts.html V1.06 cargado correctamente');
+</script>
+
+
+// ============================================
+// ARCHIVO 5/6: style.html
+// URL: https://raw.githubusercontent.com/koki81pe/MuyuReport/refs/heads/main/style.html
+// ============================================
+
+<!--
+***
+MuyuReport - style.html - V1.03
+22/12/2025 - 11:46
+***
+-->
+
+<style>
+/*
+***
+01. Reset y Variables Globales - style.html - V1.03-SV01
+***
+*/
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --primary-color: #2563eb;
+  --primary-dark: #1e40af;
+  --success-color: #059669;
+  --danger-color: #dc2626;
+  --text-dark: #1f2937;
+  --text-light: #6b7280;
+  --border-color: #e5e7eb;
+  --bg-gray: #f9fafb;
+  --white: #ffffff;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  --padding-base: 8px;
+  --padding-card: 12px;
+  --gap-base: 8px;
+}
+
+/*
+***
+02. Estilos Base - style.html - V1.03-SV02
+***
+*/
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--bg-gray);
+  color: var(--text-dark);
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/*
+***
+03. Header Principal - style.html - V1.03-SV03
+***
+*/
+.main-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  color: var(--white);
+  padding: var(--padding-card);
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+.main-header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.main-header .subtitle {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/*
+***
+04. Navegación Principal - style.html - V1.03-SV04
+***
+*/
+.tabs-nav {
+  display: flex;
+  background-color: var(--white);
+  border-bottom: 2px solid var(--border-color);
+  overflow-x: auto;
+  gap: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  color: var(--text-light);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  background-color: var(--bg-gray);
+  color: var(--text-dark);
+}
+
+.tab-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  background-color: var(--white);
+}
+
+/*
+***
+05. Sub-pestañas - style.html - V1.03-SV05
+***
+*/
+.sub-tabs-nav {
+  display: flex;
+  background-color: var(--bg-gray);
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  gap: 0;
+  margin-bottom: 12px;
+}
+
+.sub-tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  color: var(--text-light);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.sub-tab-btn:hover {
+  background-color: var(--white);
+  color: var(--text-dark);
+}
+
+.sub-tab-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  background-color: var(--white);
+}
+
+.sub-tab-content {
+  display: none;
+}
+
+.sub-tab-content.active {
+  display: block;
+}
+
+/*
+***
+06. Contenedor Principal - style.html - V1.03-SV06
+***
+*/
+.main-container {
+  padding: var(--padding-base);
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/*
+***
+07. Total del Último Día - style.html - V1.03-SV07
+***
+*/
+.last-day-total,
+.day-total-card {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+}
+
+.last-day-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--gap-base);
+  flex-wrap: wrap;
+}
+
+.total-card {
+  flex: 1;
+  min-width: 200px;
+}
+
+.total-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.total-date {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dark);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.total-breakdown {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.total-amount {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--success-color);
+}
+
+.breakdown-text {
+  font-size: 12px;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.btn-refresh {
+  padding: 10px 16px;
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-refresh:hover {
+  background-color: var(--primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-refresh:active {
+  transform: scale(0.98);
+}
+
+.refresh-icon {
+  font-size: 16px;
+  display: inline-block;
+  transition: transform 0.3s;
+}
+
+.btn-refresh:hover .refresh-icon {
+  transform: rotate(180deg);
+}
+
+/*
+***
+08. Selector de Fecha y Filtros - style.html - V1.03-SV08
+***
+*/
+.date-selector {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.date-selector label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.date-selector input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  flex: 1;
+  min-width: 120px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.date-selector input:focus {
+  border-color: var(--primary-color);
+}
+
+.btn-apply {
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-apply:hover {
+  background-color: var(--primary-dark);
+}
+
+.payment-filters {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  background-color: var(--bg-gray);
+  color: var(--text-dark);
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 70px;
+}
+
+.filter-btn:hover {
+  background-color: var(--white);
+  border-color: var(--primary-color);
+}
+
+.filter-btn.active {
+  background-color: var(--primary-color);
+  color: var(--white);
+  border-color: var(--primary-color);
+}
+
+/*
+***
+09. Tabla de Ventas - style.html - V1.03-SV09
+***
+*/
+.sales-table-container {
+  background-color: var(--white);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+
+.sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sales-table thead {
+  background-color: var(--bg-gray);
+  position: sticky;
+  top: 0;
+}
+
+.sales-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-dark);
+  border-bottom: 2px solid var(--border-color);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sales-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-dark);
+}
+
+.sales-table tbody tr:hover {
+  background-color: var(--bg-gray);
+}
+
+.sales-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.sales-table td:last-child {
+  font-weight: 600;
+  color: var(--success-color);
+  text-align: right;
+}
+
+/*
+***
+10. Botón Cargar Más y Mensajes - style.html - V1.03-SV10
+***
+*/
+.load-more-container {
+  text-align: center;
+}
+
+.btn-load-more {
+  padding: 10px 24px;
+  background-color: var(--white);
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-load-more:hover {
+  background-color: var(--primary-color);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-load-more:active {
+  transform: scale(0.98);
+}
+
+.no-more-msg {
+  color: var(--text-light);
+  font-size: 13px;
+  font-style: italic;
+  margin-top: 8px;
+}
+
+/*
+***
+11. Selector de Año y Meses - style.html - V1.03-SV11
+***
+*/
+.year-selector {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.year-selector label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.year-selector input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.year-selector input:focus {
+  border-color: var(--primary-color);
+}
+
+.btn-collapse-months {
+  width: 100%;
+  padding: 10px 16px;
+  background-color: var(--white);
+  color: var(--text-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-collapse-months:hover {
+  background-color: var(--bg-gray);
+  border-color: var(--primary-color);
+}
+
+.btn-collapse-months:active {
+  transform: scale(0.98);
+}
+
+.collapse-icon {
+  font-size: 14px;
+  transition: transform 0.3s;
+}
+
+.btn-collapse-months.collapsed .collapse-icon {
+  transform: rotate(-90deg);
+}
+
+.month-selector {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: var(--gap-base);
+  max-height: 500px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  opacity: 1;
+}
+
+.month-selector.collapsed {
+  max-height: 0;
+  padding: 0 var(--padding-card);
+  opacity: 0;
+  margin-bottom: 0;
+}
+
+.month-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  font-size: 13px;
+}
+
+.month-check:hover {
+  background-color: var(--bg-gray);
+}
+
+.month-check input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.action-container {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.btn-generate {
+  padding: 12px 32px;
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-generate:hover {
+  background-color: var(--primary-dark);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-generate:active {
+  transform: scale(0.98);
+}
+
+/*
+***
+12. Rankings Mensuales - style.html - V1.03-SV12
+***
+*/
+.monthly-rankings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.month-ranking {
+  background-color: var(--white);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  padding: var(--padding-card);
+}
+
+.month-ranking-header {
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.month-ranking-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 4px;
+}
+
+.month-ranking-total {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.month-ranking-total strong {
+  font-size: 18px;
+  color: var(--success-color);
+  font-weight: 700;
+}
+
+.ranking-list {
+  list-style: none;
+}
+
+.ranking-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.ranking-item:last-child {
+  border-bottom: none;
+}
+
+.ranking-position {
+  font-weight: 700;
+  color: var(--primary-color);
+  min-width: 24px;
+}
+
+.ranking-category {
+  flex: 1;
+  padding: 0 8px;
+  color: var(--text-dark);
+}
+
+.ranking-total {
+  font-weight: 600;
+  color: var(--success-color);
+}
+
+.ranking-item.otros {
+  background-color: var(--bg-gray);
+  margin-top: 6px;
+  padding: 8px 6px;
+  border-radius: 4px;
+}
+
+/*
+***
+13. Ventas Anuales - style.html - V1.03-SV13
+***
+*/
+.year-total-card {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.year-total-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dark);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.year-total-amount {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--success-color);
+}
+
+/*
+***
+14. Gráficos - style.html - V1.03-SV14
+***
+*/
+.chart-container {
+  background-color: var(--white);
+  padding: 16px;
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-top: 12px;
+}
+
+#sales-chart {
+  max-width: 100%;
+  height: auto !important;
+}
+
+/*
+***
+15. Responsive Desktop - style.html - V1.03-SV15
+***
+*/
+@media (min-width: 1024px) {
+  :root {
+    --padding-base: 16px;
+    --padding-card: 16px;
+    --gap-base: 12px;
+  }
+
+  body {
+    font-size: 15px;
+  }
+
+  .main-container {
+    max-width: 1400px;
+    padding: 20px;
+  }
+
+  .main-header h1 {
+    font-size: 28px;
+  }
+
+  .main-header .subtitle {
+    font-size: 14px;
+  }
+
+  .tab-btn {
+    padding: 14px 20px;
+    font-size: 15px;
+  }
+
+  .sub-tab-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .sales-table {
+    font-size: 14px;
+  }
+
+  .sales-table th,
+  .sales-table td {
+    padding: 12px 16px;
+  }
+
+  .total-amount {
+    font-size: 28px;
+  }
+
+  .monthly-rankings {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .month-selector {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .chart-container {
+    padding: 24px;
+  }
+
+  .year-total-amount {
+    font-size: 32px;
+  }
+}
+
+/*
+***
+16. Estados y Utilidades - style.html - V1.03-SV16
+***
+*/
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+
+.mb-8 {
+  margin-bottom: 8px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+.no-data::before {
+  content: "📊";
+  display: block;
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+</style>
+
+
+// ============================================
+// ARCHIVO 6/6: testall.gs
+// URL: https://raw.githubusercontent.com/koki81pe/MuyuReport/refs/heads/main/testall.gs
+// ============================================
+
+/*
+***
+MuyuReport - testall.gs - V1.03
+22/12/2025 - 11:46
+***
+*/
+
+/*
+***
+00. Función Principal de Tests - testall.gs - V1.03-SV00
+***
+*/
+function testAll() {
+  Logger.clear();
+  Logger.log('🧪 ============================================');
+  Logger.log('🧪 INICIANDO BATERÍA DE PRUEBAS - MuyuReport');
+  Logger.log('🧪 Versión: V1.07');
+  Logger.log('🧪 ============================================\n');
+  
+  const results = {
+    total: 0,
+    passed: 0,
+    failed: 0,
+    details: []
+  };
+  
+  // Tests de configuración
+  runTest('TEST 1: Verificar CONFIG.SHEET_URL', testSheetUrl, results);
+  runTest('TEST 2: Verificar CONFIG.SHEET_NAME', testSheetName, results);
+  runTest('TEST 3: Conexión con el Sheet', testSheetConnection, results);
+  
+  // Tests de funciones auxiliares
+  runTest('TEST 4: getSheet()', testGetSheet, results);
+  runTest('TEST 5: getLastValidRow()', testGetLastValidRow, results);
+  runTest('TEST 6: getDayOfWeek()', testGetDayOfWeek, results);
+  
+  // Tests de funciones principales - Diarias
+  runTest('TEST 7: getLastRecords()', testGetLastRecords, results);
+  runTest('TEST 8: getSalesByDay() - Todas', testGetSalesByDayAll, results);
+  runTest('TEST 9: getSalesByDay() - Yape', testGetSalesByDayYape, results);
+  runTest('TEST 10: getSalesByDay() - Efectivo', testGetSalesByDayEfectivo, results);
+  runTest('TEST 11: getSalesByDay() - Tarjeta', testGetSalesByDayTarjeta, results);
+  
+  // Tests de funciones principales - Mensual
+  runTest('TEST 12: getMonthlyData()', testGetMonthlyData, results);
+  runTest('TEST 13: getYearlySales()', testGetYearlySales, results);
+  
+  // Tests de funciones principales - Gráficos
+  runTest('TEST 14: getChartData()', testGetChartData, results);
+  
+  // Tests de validación de datos
+  runTest('TEST 15: Validar formato de breakdown', testBreakdownFormat, results);
+  runTest('TEST 16: Validar categoría "Resto"', testRestoCategory, results);
+  
+  // Resumen final
+  Logger.log('\n🧪 ============================================');
+  Logger.log('🧪 RESUMEN DE PRUEBAS');
+  Logger.log('🧪 ============================================');
+  Logger.log(`✅ Total de pruebas: ${results.total}`);
+  Logger.log(`✅ Exitosas: ${results.passed}`);
+  Logger.log(`❌ Fallidas: ${results.failed}`);
+  Logger.log(`📊 Porcentaje de éxito: ${((results.passed/results.total)*100).toFixed(2)}%`);
+  Logger.log('🧪 ============================================\n');
+  
+  if (results.failed > 0) {
+    Logger.log('\n⚠️ DETALLES DE PRUEBAS FALLIDAS:');
+    Logger.log('⚠️ ============================================');
+    results.details
+      .filter(d => d.status === 'FAILED')
+      .forEach(d => {
+        Logger.log(`\n❌ ${d.name}`);
+        Logger.log(`   Error: ${d.message}`);
+      });
+  }
+  
+  return results;
+}
+
+/*
+***
+01. Función Auxiliar para Ejecutar Tests - testall.gs - V1.03-SV01
+***
+*/
+function runTest(name, testFunction, results) {
+  results.total++;
+  try {
+    testFunction();
+    results.passed++;
+    results.details.push({
+      name: name,
+      status: 'PASSED',
+      message: 'OK'
+    });
+    Logger.log(`✅ ${name}: PASSED`);
+  } catch (error) {
+    results.failed++;
+    results.details.push({
+      name: name,
+      status: 'FAILED',
+      message: error.message
+    });
+    Logger.log(`❌ ${name}: FAILED - ${error.message}`);
+  }
+}
+
+/*
+***
+02. Tests de Configuración - testall.gs - V1.03-SV02
+***
+*/
+function testSheetUrl() {
+  if (!CONFIG.SHEET_URL || CONFIG.SHEET_URL === '') {
+    throw new Error('CONFIG.SHEET_URL no definido');
+  }
+  if (!CONFIG.SHEET_URL.includes('docs.google.com/spreadsheets')) {
+    throw new Error('CONFIG.SHEET_URL no es una URL válida de Google Sheets');
+  }
+}
+
+function testSheetName() {
+  if (!CONFIG.SHEET_NAME || CONFIG.SHEET_NAME === '') {
+    throw new Error('CONFIG.SHEET_NAME no definido');
+  }
+}
+
+function testSheetConnection() {
+  const ss = SpreadsheetApp.openByUrl(CONFIG.SHEET_URL);
+  if (!ss) {
+    throw new Error('No se puede abrir el Spreadsheet');
+  }
+  const sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
+  if (!sheet) {
+    throw new Error(`Hoja "${CONFIG.SHEET_NAME}" no encontrada`);
+  }
+}
+
+/*
+***
+03. Tests de Funciones Auxiliares - testall.gs - V1.03-SV03
+***
+*/
+function testGetSheet() {
+  const sheet = getSheet();
+  if (!sheet) {
+    throw new Error('getSheet() devolvió null');
+  }
+  if (sheet.getName() !== CONFIG.SHEET_NAME) {
+    throw new Error(`Nombre de hoja incorrecto: ${sheet.getName()}`);
+  }
+  Logger.log(`   → Hoja: ${sheet.getName()}`);
+}
+
+function testGetLastValidRow() {
+  const sheet = getSheet();
+  const lastRow = getLastValidRow(sheet);
+  
+  if (typeof lastRow !== 'number') {
+    throw new Error('getLastValidRow() no devuelve un número');
+  }
+  if (lastRow < 1) {
+    throw new Error(`Última fila inválida: ${lastRow}`);
+  }
+  Logger.log(`   → Última fila: ${lastRow}`);
+}
+
+function testGetDayOfWeek() {
+  const testCases = [
+    { fecha: '22/12/2025', expected: 'Lunes' },
+    { fecha: '21/12/2025', expected: 'Domingo' },
+    { fecha: '25/12/2025', expected: 'Jueves' }
+  ];
+  
+  testCases.forEach(test => {
+    const result = getDayOfWeek(test.fecha);
+    if (result !== test.expected) {
+      throw new Error(`getDayOfWeek('${test.fecha}') devolvió '${result}', esperado '${test.expected}'`);
+    }
+  });
+  
+  Logger.log(`   → Tests exitosos: ${testCases.length}`);
+}
+
+/*
+***
+04. Tests de Funciones Principales - Diarias - testall.gs - V1.03-SV04
+***
+*/
+function testGetLastRecords() {
+  const result = getLastRecords();
+  
+  if (!result.success) {
+    throw new Error(`getLastRecords() falló: ${result.error}`);
+  }
+  
+  if (!Array.isArray(result.data)) {
+    throw new Error('getLastRecords() no devuelve un array en data');
+  }
+  
+  if (typeof result.total !== 'number') {
+    throw new Error('getLastRecords() no devuelve número en total');
+  }
+  
+  if (!result.lastDate) {
+    throw new Error('getLastRecords() no devuelve lastDate');
+  }
+  
+  if (!result.dayOfWeek) {
+    throw new Error('getLastRecords() no devuelve dayOfWeek');
+  }
+  
+  if (!result.breakdown || typeof result.breakdown !== 'object') {
+    throw new Error('getLastRecords() no devuelve breakdown válido');
+  }
+  
+  // Validar estructura de breakdown
+  if (!('Yape' in result.breakdown) || !('Efectivo' in result.breakdown) || !('Tarjeta' in result.breakdown)) {
+    throw new Error('breakdown no contiene Yape, Efectivo y Tarjeta');
+  }
+  
+  Logger.log(`   → Registros: ${result.data.length}`);
+  Logger.log(`   → Fecha: ${result.dayOfWeek} ${result.lastDate}`);
+  Logger.log(`   → Total: ${result.total}`);
+}
+
+function testGetSalesByDayAll() {
+  // Usar la última fecha disponible
+  const lastRecordsResult = getLastRecords();
+  if (!lastRecordsResult.success || !lastRecordsResult.lastDate) {
+    throw new Error('No se pudo obtener última fecha para test');
+  }
+  
+  const fecha = lastRecordsResult.lastDate;
+  const result = getSalesByDay(fecha, 'Todas');
+  
+  if (!result.success) {
+    throw new Error(`getSalesByDay() falló: ${result.error}`);
+  }
+  
+  if (!Array.isArray(result.data)) {
+    throw new Error('getSalesByDay() no devuelve array en data');
+  }
+  
+  if (typeof result.total !== 'number') {
+    throw new Error('getSalesByDay() no devuelve número en total');
+  }
+  
+  if (!result.breakdown) {
+    throw new Error('getSalesByDay() no devuelve breakdown');
+  }
+  
+  Logger.log(`   → Fecha: ${fecha}`);
+  Logger.log(`   → Registros: ${result.data.length}`);
+  Logger.log(`   → Total: ${result.total}`);
+}
+
+function testGetSalesByDayYape() {
+  const lastRecordsResult = getLastRecords();
+  const fecha = lastRecordsResult.lastDate;
+  const result = getSalesByDay(fecha, 'Yape');
+  
+  if (!result.success) {
+    throw new Error('getSalesByDay(Yape) falló');
+  }
+  
+  // Los registros deben ser solo de categoría/producto/total (sin medio de pago)
+  if (result.data.length > 0) {
+    const firstRecord = result.data[0];
+    if ('medioPago' in firstRecord) {
+      throw new Error('getSalesByDay(filtrado) no debe incluir medioPago en los registros');
+    }
+  }
+  
+  Logger.log(`   → Registros Yape: ${result.data.length}`);
+}
+
+function testGetSalesByDayEfectivo() {
+  const lastRecordsResult = getLastRecords();
+  const fecha = lastRecordsResult.lastDate;
+  const result = getSalesByDay(fecha, 'Efectivo');
+  
+  if (!result.success) {
+    throw new Error('getSalesByDay(Efectivo) falló');
+  }
+  
+  Logger.log(`   → Registros Efectivo: ${result.data.length}`);
+}
+
+function testGetSalesByDayTarjeta() {
+  const lastRecordsResult = getLastRecords();
+  const fecha = lastRecordsResult.lastDate;
+  const result = getSalesByDay(fecha, 'Tarjeta');
+  
+  if (!result.success) {
+    throw new Error('getSalesByDay(Tarjeta) falló');
+  }
+  
+  Logger.log(`   → Registros Tarjeta: ${result.data.length}`);
+}
+
+/*
+***
+05. Tests de Funciones Principales - Mensual - testall.gs - V1.03-SV05
+***
+*/
+function testGetMonthlyData() {
+  const year = 2025;
+  const months = [10, 11, 12]; // Oct, Nov, Dic
+  
+  const result = getMonthlyData(year, months);
+  
+  if (!result.success) {
+    throw new Error(`getMonthlyData() falló: ${result.error}`);
+  }
+  
+  if (typeof result.data !== 'object') {
+    throw new Error('getMonthlyData() no devuelve objeto en data');
+  }
+  
+  months.forEach(month => {
+    if (!(month in result.data)) {
+      throw new Error(`Mes ${month} no encontrado en resultado`);
+    }
+    
+    const monthData = result.data[month];
+    if (!monthData.total || !monthData.ranking) {
+      throw new Error(`Mes ${month} no tiene estructura correcta`);
+    }
+  });
+  
+  Logger.log(`   → Meses procesados: ${months.length}`);
+}
+
+function testGetYearlySales() {
+  const year = 2025;
+  
+  const result = getYearlySales(year);
+  
+  if (!result.success) {
+    throw new Error(`getYearlySales() falló: ${result.error}`);
+  }
+  
+  if (!Array.isArray(result.data)) {
+    throw new Error('getYearlySales() no devuelve array en data');
+  }
+  
+  if (typeof result.totalYear !== 'number') {
+    throw new Error('getYearlySales() no devuelve totalYear');
+  }
+  
+  // Validar estructura de cada mes
+  if (result.data.length > 0) {
+    const firstMonth = result.data[0];
+    if (!('month' in firstMonth) || !('Yape' in firstMonth) || !('Efectivo' in firstMonth) || !('Tarjeta' in firstMonth) || !('total' in firstMonth)) {
+      throw new Error('Estructura de mes incorrecta en getYearlySales()');
+    }
+  }
+  
+  Logger.log(`   → Meses con datos: ${result.data.length}`);
+  Logger.log(`   → Total año: ${result.totalYear}`);
+}
+
+/*
+***
+06. Tests de Funciones Principales - Gráficos - testall.gs - V1.03-SV06
+***
+*/
+function testGetChartData() {
+  const year = 2025;
+  const months = [10, 11, 12];
+  
+  const result = getChartData(year, months);
+  
+  if (!result.success) {
+    throw new Error(`getChartData() falló: ${result.error}`);
+  }
+  
+  if (typeof result.data !== 'object') {
+    throw new Error('getChartData() no devuelve objeto en data');
+  }
+  
+  months.forEach(month => {
+    if (!(month in result.data)) {
+      throw new Error(`Mes ${month} no encontrado en resultado`);
+    }
+    
+    const monthData = result.data[month];
+    if (!monthData.weeks || !monthData.weeks.S1 === undefined) {
+      throw new Error(`Mes ${month} no tiene estructura de semanas correcta`);
+    }
+  });
+  
+  Logger.log(`   → Meses procesados: ${months.length}`);
+}
+
+/*
+***
+07. Tests de Validación de Datos - testall.gs - V1.03-SV07
+***
+*/
+function testBreakdownFormat() {
+  const result = getLastRecords();
+  
+  if (!result.success) {
+    throw new Error('No se pudo obtener datos para validar breakdown');
+  }
+  
+  const breakdown = result.breakdown;
+  
+  // Validar que sean números
+  if (typeof breakdown.Yape !== 'number' || typeof breakdown.Efectivo !== 'number' || typeof breakdown.Tarjeta !== 'number') {
+    throw new Error('breakdown contiene valores no numéricos');
+  }
+  
+  // Validar que sean no negativos
+  if (breakdown.Yape < 0 || breakdown.Efectivo < 0 || breakdown.Tarjeta < 0) {
+    throw new Error('breakdown contiene valores negativos');
+  }
+  
+  // Validar que la suma sea igual al total
+  const sum = breakdown.Yape + breakdown.Efectivo + breakdown.Tarjeta;
+  const diff = Math.abs(sum - result.total);
+  
+  if (diff > 0.01) { // Tolerancia para errores de redondeo
+    throw new Error(`Suma de breakdown (${sum}) no coincide con total (${result.total})`);
+  }
+  
+  Logger.log(`   → Breakdown válido: Yape ${breakdown.Yape}, Efectivo ${breakdown.Efectivo}, Tarjeta ${breakdown.Tarjeta}`);
+}
+
+function testRestoCategory() {
+  const year = 2025;
+  const months = [10]; // Solo un mes para simplificar
+  
+  const result = getMonthlyData(year, months);
+  
+  if (!result.success) {
+    throw new Error('No se pudo obtener datos para validar categoría Resto');
+  }
+  
+  const monthData = result.data[10];
+  
+  // Buscar si hay categoría "Resto"
+  const restoItem = monthData.ranking.find(item => item.categoria === 'Resto');
+  
+  if (restoItem) {
+    Logger.log(`   → Categoría "Resto" encontrada con total: ${restoItem.total}`);
+    
+    // Verificar que sea la última posición si existe
+    const lastItem = monthData.ranking[monthData.ranking.length - 1];
+    if (lastItem.categoria !== 'Resto') {
+      throw new Error('Categoría "Resto" no está en última posición');
+    }
+  } else {
+    Logger.log('   → No hay categoría "Resto" (menos de 11 categorías)');
+  }
+  
+  // Verificar que NO haya categoría "Otros"
+  const otrosItem = monthData.ranking.find(item => item.categoria === 'Otros');
+  if (otrosItem) {
+    throw new Error('Se encontró categoría "Otros", debería ser "Resto"');
+  }
+}
+
+/*
+***
+08. Test de Performance - testall.gs - V1.03-SV08
+***
+*/
+function testPerformance() {
+  Logger.clear();
+  Logger.log('⏱️ ============================================');
+  Logger.log('⏱️ TEST DE PERFORMANCE');
+  Logger.log('⏱️ ============================================\n');
+  
+  const tests = [
+    { name: 'getLastRecords()', func: () => getLastRecords() },
+    { name: 'getSalesByDay()', func: () => {
+      const lastDate = getLastRecords().lastDate;
+      return getSalesByDay(lastDate, 'Todas');
+    }},
+    { name: 'getMonthlyData()', func: () => getMonthlyData(2025, [10, 11, 12]) },
+    { name: 'getYearlySales()', func: () => getYearlySales(2025) },
+    { name: 'getChartData()', func: () => getChartData(2025, [10, 11, 12]) }
+  ];
+  
+  tests.forEach(test => {
+    const start = new Date().getTime();
+    test.func();
+    const end = new Date().getTime();
+    const duration = end - start;
+    
+    Logger.log(`${test.name}: ${duration}ms`);
+  });
+  
+  Logger.log('\n⏱️ ============================================');
+}
+
+
+// ============================================
+// FIN DEL SOLID CODE
+// Tamaño total: 84,380 caracteres
+// ============================================
