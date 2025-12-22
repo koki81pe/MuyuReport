@@ -1,0 +1,860 @@
+<!--
+***
+MuyuReport - style.html - V1.03
+22/12/2025 - 11:46
+***
+-->
+
+<style>
+/*
+***
+01. Reset y Variables Globales - style.html - V1.03-SV01
+***
+*/
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --primary-color: #2563eb;
+  --primary-dark: #1e40af;
+  --success-color: #059669;
+  --danger-color: #dc2626;
+  --text-dark: #1f2937;
+  --text-light: #6b7280;
+  --border-color: #e5e7eb;
+  --bg-gray: #f9fafb;
+  --white: #ffffff;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  --padding-base: 8px;
+  --padding-card: 12px;
+  --gap-base: 8px;
+}
+
+/*
+***
+02. Estilos Base - style.html - V1.03-SV02
+***
+*/
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--bg-gray);
+  color: var(--text-dark);
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/*
+***
+03. Header Principal - style.html - V1.03-SV03
+***
+*/
+.main-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  color: var(--white);
+  padding: var(--padding-card);
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+.main-header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.main-header .subtitle {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/*
+***
+04. Navegación Principal - style.html - V1.03-SV04
+***
+*/
+.tabs-nav {
+  display: flex;
+  background-color: var(--white);
+  border-bottom: 2px solid var(--border-color);
+  overflow-x: auto;
+  gap: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  color: var(--text-light);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  background-color: var(--bg-gray);
+  color: var(--text-dark);
+}
+
+.tab-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  background-color: var(--white);
+}
+
+/*
+***
+05. Sub-pestañas - style.html - V1.03-SV05
+***
+*/
+.sub-tabs-nav {
+  display: flex;
+  background-color: var(--bg-gray);
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  gap: 0;
+  margin-bottom: 12px;
+}
+
+.sub-tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  color: var(--text-light);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.sub-tab-btn:hover {
+  background-color: var(--white);
+  color: var(--text-dark);
+}
+
+.sub-tab-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  background-color: var(--white);
+}
+
+.sub-tab-content {
+  display: none;
+}
+
+.sub-tab-content.active {
+  display: block;
+}
+
+/*
+***
+06. Contenedor Principal - style.html - V1.03-SV06
+***
+*/
+.main-container {
+  padding: var(--padding-base);
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/*
+***
+07. Total del Último Día - style.html - V1.03-SV07
+***
+*/
+.last-day-total,
+.day-total-card {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+}
+
+.last-day-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--gap-base);
+  flex-wrap: wrap;
+}
+
+.total-card {
+  flex: 1;
+  min-width: 200px;
+}
+
+.total-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.total-date {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dark);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.total-breakdown {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.total-amount {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--success-color);
+}
+
+.breakdown-text {
+  font-size: 12px;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.btn-refresh {
+  padding: 10px 16px;
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-refresh:hover {
+  background-color: var(--primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-refresh:active {
+  transform: scale(0.98);
+}
+
+.refresh-icon {
+  font-size: 16px;
+  display: inline-block;
+  transition: transform 0.3s;
+}
+
+.btn-refresh:hover .refresh-icon {
+  transform: rotate(180deg);
+}
+
+/*
+***
+08. Selector de Fecha y Filtros - style.html - V1.03-SV08
+***
+*/
+.date-selector {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.date-selector label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.date-selector input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  flex: 1;
+  min-width: 120px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.date-selector input:focus {
+  border-color: var(--primary-color);
+}
+
+.btn-apply {
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-apply:hover {
+  background-color: var(--primary-dark);
+}
+
+.payment-filters {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  background-color: var(--bg-gray);
+  color: var(--text-dark);
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 70px;
+}
+
+.filter-btn:hover {
+  background-color: var(--white);
+  border-color: var(--primary-color);
+}
+
+.filter-btn.active {
+  background-color: var(--primary-color);
+  color: var(--white);
+  border-color: var(--primary-color);
+}
+
+/*
+***
+09. Tabla de Ventas - style.html - V1.03-SV09
+***
+*/
+.sales-table-container {
+  background-color: var(--white);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+
+.sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sales-table thead {
+  background-color: var(--bg-gray);
+  position: sticky;
+  top: 0;
+}
+
+.sales-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-dark);
+  border-bottom: 2px solid var(--border-color);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sales-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-dark);
+}
+
+.sales-table tbody tr:hover {
+  background-color: var(--bg-gray);
+}
+
+.sales-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.sales-table td:last-child {
+  font-weight: 600;
+  color: var(--success-color);
+  text-align: right;
+}
+
+/*
+***
+10. Botón Cargar Más y Mensajes - style.html - V1.03-SV10
+***
+*/
+.load-more-container {
+  text-align: center;
+}
+
+.btn-load-more {
+  padding: 10px 24px;
+  background-color: var(--white);
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-load-more:hover {
+  background-color: var(--primary-color);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-load-more:active {
+  transform: scale(0.98);
+}
+
+.no-more-msg {
+  color: var(--text-light);
+  font-size: 13px;
+  font-style: italic;
+  margin-top: 8px;
+}
+
+/*
+***
+11. Selector de Año y Meses - style.html - V1.03-SV11
+***
+*/
+.year-selector {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.year-selector label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.year-selector input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.year-selector input:focus {
+  border-color: var(--primary-color);
+}
+
+.btn-collapse-months {
+  width: 100%;
+  padding: 10px 16px;
+  background-color: var(--white);
+  color: var(--text-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-collapse-months:hover {
+  background-color: var(--bg-gray);
+  border-color: var(--primary-color);
+}
+
+.btn-collapse-months:active {
+  transform: scale(0.98);
+}
+
+.collapse-icon {
+  font-size: 14px;
+  transition: transform 0.3s;
+}
+
+.btn-collapse-months.collapsed .collapse-icon {
+  transform: rotate(-90deg);
+}
+
+.month-selector {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: var(--gap-base);
+  max-height: 500px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  opacity: 1;
+}
+
+.month-selector.collapsed {
+  max-height: 0;
+  padding: 0 var(--padding-card);
+  opacity: 0;
+  margin-bottom: 0;
+}
+
+.month-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  font-size: 13px;
+}
+
+.month-check:hover {
+  background-color: var(--bg-gray);
+}
+
+.month-check input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.action-container {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.btn-generate {
+  padding: 12px 32px;
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-generate:hover {
+  background-color: var(--primary-dark);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-generate:active {
+  transform: scale(0.98);
+}
+
+/*
+***
+12. Rankings Mensuales - style.html - V1.03-SV12
+***
+*/
+.monthly-rankings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.month-ranking {
+  background-color: var(--white);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  padding: var(--padding-card);
+}
+
+.month-ranking-header {
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.month-ranking-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 4px;
+}
+
+.month-ranking-total {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.month-ranking-total strong {
+  font-size: 18px;
+  color: var(--success-color);
+  font-weight: 700;
+}
+
+.ranking-list {
+  list-style: none;
+}
+
+.ranking-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.ranking-item:last-child {
+  border-bottom: none;
+}
+
+.ranking-position {
+  font-weight: 700;
+  color: var(--primary-color);
+  min-width: 24px;
+}
+
+.ranking-category {
+  flex: 1;
+  padding: 0 8px;
+  color: var(--text-dark);
+}
+
+.ranking-total {
+  font-weight: 600;
+  color: var(--success-color);
+}
+
+.ranking-item.otros {
+  background-color: var(--bg-gray);
+  margin-top: 6px;
+  padding: 8px 6px;
+  border-radius: 4px;
+}
+
+/*
+***
+13. Ventas Anuales - style.html - V1.03-SV13
+***
+*/
+.year-total-card {
+  background-color: var(--white);
+  padding: var(--padding-card);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.year-total-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dark);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.year-total-amount {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--success-color);
+}
+
+/*
+***
+14. Gráficos - style.html - V1.03-SV14
+***
+*/
+.chart-container {
+  background-color: var(--white);
+  padding: 16px;
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-top: 12px;
+}
+
+#sales-chart {
+  max-width: 100%;
+  height: auto !important;
+}
+
+/*
+***
+15. Responsive Desktop - style.html - V1.03-SV15
+***
+*/
+@media (min-width: 1024px) {
+  :root {
+    --padding-base: 16px;
+    --padding-card: 16px;
+    --gap-base: 12px;
+  }
+
+  body {
+    font-size: 15px;
+  }
+
+  .main-container {
+    max-width: 1400px;
+    padding: 20px;
+  }
+
+  .main-header h1 {
+    font-size: 28px;
+  }
+
+  .main-header .subtitle {
+    font-size: 14px;
+  }
+
+  .tab-btn {
+    padding: 14px 20px;
+    font-size: 15px;
+  }
+
+  .sub-tab-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .sales-table {
+    font-size: 14px;
+  }
+
+  .sales-table th,
+  .sales-table td {
+    padding: 12px 16px;
+  }
+
+  .total-amount {
+    font-size: 28px;
+  }
+
+  .monthly-rankings {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .month-selector {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .chart-container {
+    padding: 24px;
+  }
+
+  .year-total-amount {
+    font-size: 32px;
+  }
+}
+
+/*
+***
+16. Estados y Utilidades - style.html - V1.03-SV16
+***
+*/
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+
+.mb-8 {
+  margin-bottom: 8px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+.no-data::before {
+  content: "📊";
+  display: block;
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+</style>
