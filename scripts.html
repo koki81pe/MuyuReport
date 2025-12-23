@@ -1,7 +1,7 @@
 <!--
 ***
-MuyuReport - scripts.html - V1.06
-22/12/2025 - 12:08
+MuyuReport - scripts.html - V1.07
+23/12/2025 - 00:30
 ***
 -->
 
@@ -17,7 +17,6 @@ let lastSalesData = []; // Datos del último día
 let daySalesData = []; // Datos del día seleccionado
 let currentDayFilter = 'Todas'; // Filtro activo en "Por día"
 let displayedLastSales = 0;
-let displayedDaySales = 0;
 let currentChart = null;
 
 const MONTHS_NAMES = {
@@ -240,13 +239,6 @@ function initializeDayTab() {
     });
   });
   
-  const btnLoadMoreDay = document.getElementById('btn-load-more-day');
-  if (btnLoadMoreDay) {
-    btnLoadMoreDay.addEventListener('click', function() {
-      displayMoreDaySales();
-    });
-  }
-  
   // Cargar hoy por defecto
   setTimeout(() => applyDateFilter(), 500);
 }
@@ -287,12 +279,11 @@ function loadDaySales(fecha, medioPago) {
       
       if (response.success) {
         daySalesData = response.data;
-        displayedDaySales = 0;
         
         // Actualizar header
         updateDayHeader(response);
         
-        // Renderizar tabla
+        // Renderizar tabla (todos los registros)
         renderDaySalesTable();
       } else {
         ModalSystem.error('No se pudieron cargar las ventas');
@@ -325,30 +316,27 @@ function updateDayHeader(response) {
 function renderDaySalesTable() {
   const tbody = document.getElementById('day-sales-tbody');
   const thead = document.querySelector('#day-sales-table thead tr');
-  const toDisplay = Math.min(displayedDaySales + 10, daySalesData.length);
   
-  if (displayedDaySales === 0) {
-    tbody.innerHTML = '';
-    
-    // Actualizar encabezados según filtro
-    if (currentDayFilter === 'Todas') {
-      thead.innerHTML = `
-        <th>Categoría</th>
-        <th>Producto</th>
-        <th>Medio</th>
-        <th>Monto</th>
-      `;
-    } else {
-      thead.innerHTML = `
-        <th>Categoría</th>
-        <th>Producto</th>
-        <th>Monto</th>
-      `;
-    }
+  tbody.innerHTML = '';
+  
+  // Actualizar encabezados según filtro
+  if (currentDayFilter === 'Todas') {
+    thead.innerHTML = `
+      <th>Categoría</th>
+      <th>Producto</th>
+      <th>Medio</th>
+      <th>Monto</th>
+    `;
+  } else {
+    thead.innerHTML = `
+      <th>Categoría</th>
+      <th>Producto</th>
+      <th>Monto</th>
+    `;
   }
   
-  for (let i = displayedDaySales; i < toDisplay; i++) {
-    const sale = daySalesData[i];
+  // Renderizar TODOS los registros de una vez
+  daySalesData.forEach(sale => {
     const row = tbody.insertRow();
     row.classList.add('fade-in');
     
@@ -366,16 +354,11 @@ function renderDaySalesTable() {
         <td>${formatNumber(sale.total)}</td>
       `;
     }
-  }
+  });
   
-  displayedDaySales = toDisplay;
-  
+  // Ocultar botón "Cargar más" (ya no se necesita)
   const btnLoadMore = document.getElementById('btn-load-more-day');
-  if (displayedDaySales >= daySalesData.length) {
-    btnLoadMore.style.display = 'none';
-  } else {
-    btnLoadMore.style.display = 'block';
-  }
+  btnLoadMore.style.display = 'none';
   
   const colspan = currentDayFilter === 'Todas' ? '4' : '3';
   if (daySalesData.length === 0) {
@@ -383,15 +366,9 @@ function renderDaySalesTable() {
   }
 }
 
-function displayMoreDaySales() {
-  if (displayedDaySales < daySalesData.length) {
-    renderDaySalesTable();
-  }
-}
-
 /*
 ***
-07. Sub-pestaña: Ranking Cat. - scripts.html - V1.05-SV07
+07. Sub-pestaña: Ranking Cat. - scripts.html - V1.06-SV07
 ***
 */
 function initializeMonthlyTab() {
@@ -757,5 +734,5 @@ window.addEventListener('resize', function() {
   }
 });
 
-console.log('MuyuReport scripts.html V1.06 cargado correctamente');
+console.log('MuyuReport scripts.html V1.07 cargado correctamente');
 </script>
