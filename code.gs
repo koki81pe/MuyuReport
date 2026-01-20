@@ -1,27 +1,24 @@
+// MOD-001: ENCABEZADO [INICIO]
 /*
-***
-MuyuReport - code.gs - V1.07
-22/12/2025 - 12:08
-***
+*****************************************
+PROYECTO: MuyuReport
+ARCHIVO: code.gs
+VERSIÓN: 01.08
+FECHA: 19/01/2026 11:43 (UTC-5)
+*****************************************
 */
+// MOD-001: FIN
 
-/*
-***
-01. Configuración Global - code.gs - V1.01-SV01
-***
-*/
+// MOD-002: CONFIGURACIÓN GLOBAL [INICIO]
 const CONFIG = {
   SHEET_URL: 'https://docs.google.com/spreadsheets/d/1lZ8OEIfeUvHqxWsVHYy4W1ow2VpIYCvTr9YFAxDkCCU/edit?usp=sharing',
   SHEET_NAME: 'Ventas',
-  BATCH_SIZE: 100, // Registros a cargar por bloque
-  INITIAL_DISPLAY: 5 // Registros iniciales a mostrar
+  BATCH_SIZE: 100,
+  INITIAL_DISPLAY: 5
 };
+// MOD-002: FIN
 
-/*
-***
-02. Función Principal - Servir HTML - code.gs - V1.03-SV02
-***
-*/
+// MOD-003: SERVIR HTML [INICIO]
 function doGet() {
   return HtmlService.createTemplateFromFile('home')
     .evaluate()
@@ -29,21 +26,15 @@ function doGet() {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
 }
+// MOD-003: FIN
 
-/*
-***
-03. Incluir Archivos HTML - code.gs - V1.01-SV03
-***
-*/
+// MOD-004: INCLUIR ARCHIVOS HTML [INICIO]
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
+// MOD-004: FIN
 
-/*
-***
-04. Obtener Registros del Último Día - code.gs - V1.07-SV04
-***
-*/
+// MOD-005: OBTENER REGISTROS DEL ÚLTIMO DÍA [INICIO]
 function getLastRecords(cantidad = CONFIG.BATCH_SIZE) {
   try {
     const sheet = getSheet();
@@ -53,16 +44,14 @@ function getLastRecords(cantidad = CONFIG.BATCH_SIZE) {
       return { success: true, data: [], total: 0, lastDate: '', dayOfWeek: '', breakdown: {} };
     }
     
-    // Leer últimos 200 registros para asegurar capturar todo el último día
     const startRow = Math.max(2, lastRow - 199);
     const numRows = lastRow - startRow + 1;
     const range = sheet.getRange(startRow, 1, numRows, 7);
     const values = range.getDisplayValues();
     
-    // Obtener la última fecha válida
     let lastDate = null;
     for (let i = values.length - 1; i >= 0; i--) {
-      if (values[i][0] && values[i][2]) { // Fecha y Producto válidos
+      if (values[i][0] && values[i][2]) {
         lastDate = values[i][0];
         break;
       }
@@ -72,7 +61,6 @@ function getLastRecords(cantidad = CONFIG.BATCH_SIZE) {
       return { success: true, data: [], total: 0, lastDate: '', dayOfWeek: '', breakdown: {} };
     }
     
-    // Filtrar solo registros del último día y procesar
     const records = [];
     const breakdown = { Yape: 0, Efectivo: 0, Tarjeta: 0 };
     let totalDay = 0;
@@ -92,7 +80,6 @@ function getLastRecords(cantidad = CONFIG.BATCH_SIZE) {
           total: total
         });
         
-        // Acumular por medio de pago
         if (medioPago === 'Yape') breakdown.Yape += total;
         else if (medioPago === 'Efectivo') breakdown.Efectivo += total;
         else if (medioPago === 'Tarjeta') breakdown.Tarjeta += total;
@@ -101,7 +88,6 @@ function getLastRecords(cantidad = CONFIG.BATCH_SIZE) {
       }
     }
     
-    // Calcular día de la semana
     const dayOfWeek = getDayOfWeek(lastDate);
     
     return {
@@ -122,12 +108,9 @@ function getLastRecords(cantidad = CONFIG.BATCH_SIZE) {
     };
   }
 }
+// MOD-005: FIN
 
-/*
-***
-05. Obtener Ventas de un Día Específico - code.gs - V1.07-SV05
-***
-*/
+// MOD-006: OBTENER VENTAS POR DÍA [INICIO]
 function getSalesByDay(fecha, medioPago = 'Todas') {
   try {
     const sheet = getSheet();
@@ -137,11 +120,9 @@ function getSalesByDay(fecha, medioPago = 'Todas') {
       return { success: true, data: [], total: 0, breakdown: {} };
     }
     
-    // Leer todos los datos
     const range = sheet.getRange(2, 1, lastRow - 1, 7);
     const values = range.getDisplayValues();
     
-    // Filtrar por fecha y medio de pago
     const records = [];
     const breakdown = { Yape: 0, Efectivo: 0, Tarjeta: 0 };
     let totalDay = 0;
@@ -154,16 +135,13 @@ function getSalesByDay(fecha, medioPago = 'Todas') {
       const total = parseFloat(row[6]) || 0;
       
       if (rowFecha === fecha && producto) {
-        // Acumular totales por medio de pago
         if (rowMedioPago === 'Yape') breakdown.Yape += total;
         else if (rowMedioPago === 'Efectivo') breakdown.Efectivo += total;
         else if (rowMedioPago === 'Tarjeta') breakdown.Tarjeta += total;
         
         totalDay += total;
         
-        // Filtrar por medio de pago si no es "Todas"
         if (medioPago === 'Todas' || rowMedioPago === medioPago) {
-          // Si es "Todas", incluir medioPago; si no, omitirlo
           if (medioPago === 'Todas') {
             records.push({
               categoria: categoria,
@@ -182,7 +160,6 @@ function getSalesByDay(fecha, medioPago = 'Todas') {
       }
     });
     
-    // Calcular día de la semana
     const dayOfWeek = getDayOfWeek(fecha);
     
     return {
@@ -202,12 +179,9 @@ function getSalesByDay(fecha, medioPago = 'Todas') {
     };
   }
 }
+// MOD-006: FIN
 
-/*
-***
-06. Obtener Datos Mensuales - code.gs - V1.06-SV06
-***
-*/
+// MOD-007: OBTENER DATOS MENSUALES [INICIO]
 function getMonthlyData(year, months) {
   try {
     const sheet = getSheet();
@@ -217,11 +191,9 @@ function getMonthlyData(year, months) {
       return { success: true, data: {} };
     }
     
-    // Leer todos los datos como TEXTO VISUAL
     const range = sheet.getRange(2, 1, lastRow - 1, 7);
     const values = range.getDisplayValues();
     
-    // Procesar por mes
     const monthlyData = {};
     
     months.forEach(month => {
@@ -229,18 +201,16 @@ function getMonthlyData(year, months) {
       let totalMes = 0;
       
       values.forEach(row => {
-        const fecha = row[0]; // Ya es texto "9/6/2025" o "09/06/2025"
+        const fecha = row[0];
         const producto = row[2];
         
         if (!fecha || !producto) return;
         
-        // Verificar si pertenece al mes/año
         const parts = fecha.split('/');
         if (parts.length === 3) {
-          const rowMonth = parseInt(parts[1]); // Convertir a número: "6" o "06" → 6
+          const rowMonth = parseInt(parts[1]);
           const rowYear = parseInt(parts[2]);
           
-          // Comparar números directamente
           if (rowMonth === month && rowYear === year) {
             const categoria = row[1] || 'Sin categoría';
             const total = parseFloat(row[6]) || 0;
@@ -254,7 +224,6 @@ function getMonthlyData(year, months) {
         }
       });
       
-      // Ordenar categorías y obtener top 10
       const sortedCategories = Object.entries(categories)
         .sort((a, b) => b[1] - a[1]);
       
@@ -299,12 +268,9 @@ function getMonthlyData(year, months) {
     };
   }
 }
+// MOD-007: FIN
 
-/*
-***
-07. Obtener Datos para Gráficos - code.gs - V1.06-SV07
-***
-*/
+// MOD-008: OBTENER DATOS PARA GRÁFICOS [INICIO]
 function getChartData(year, months) {
   try {
     const sheet = getSheet();
@@ -314,25 +280,23 @@ function getChartData(year, months) {
       return { success: true, data: {} };
     }
     
-    // Leer todos los datos como TEXTO VISUAL
     const range = sheet.getRange(2, 1, lastRow - 1, 7);
     const values = range.getDisplayValues();
     
     const chartData = {};
     
     months.forEach(month => {
-      // Inicializar semanas
       const weeks = {
-        S1: 0, // días 1-7
-        S2: 0, // días 8-14
-        S3: 0, // días 15-21
-        S4: 0  // días 22-fin
+        S1: 0,
+        S2: 0,
+        S3: 0,
+        S4: 0
       };
       
       let totalMes = 0;
       
       values.forEach(row => {
-        const fecha = row[0]; // Ya es texto "9/6/2025" o "09/06/2025"
+        const fecha = row[0];
         const producto = row[2];
         
         if (!fecha || !producto) return;
@@ -340,15 +304,13 @@ function getChartData(year, months) {
         const parts = fecha.split('/');
         if (parts.length === 3) {
           const day = parseInt(parts[0]);
-          const rowMonth = parseInt(parts[1]); // Convertir a número
+          const rowMonth = parseInt(parts[1]);
           const rowYear = parseInt(parts[2]);
           
-          // Comparar números directamente
           if (rowMonth === month && rowYear === year) {
             const total = parseFloat(row[6]) || 0;
             totalMes += total;
             
-            // Asignar a semana
             if (day >= 1 && day <= 7) {
               weeks.S1 += total;
             } else if (day >= 8 && day <= 14) {
@@ -381,12 +343,9 @@ function getChartData(year, months) {
     };
   }
 }
+// MOD-008: FIN
 
-/*
-***
-08. Obtener Ventas Anuales por Mes - code.gs - V1.07-SV08
-***
-*/
+// MOD-009: OBTENER VENTAS ANUALES [INICIO]
 function getYearlySales(year) {
   try {
     const sheet = getSheet();
@@ -396,11 +355,9 @@ function getYearlySales(year) {
       return { success: true, data: [], totalYear: 0 };
     }
     
-    // Leer todos los datos
     const range = sheet.getRange(2, 1, lastRow - 1, 7);
     const values = range.getDisplayValues();
     
-    // Objeto para acumular por mes
     const monthlyData = {};
     let totalYear = 0;
     
@@ -428,7 +385,6 @@ function getYearlySales(year) {
             };
           }
           
-          // Acumular por medio de pago
           if (medioPago === 'Yape') monthlyData[rowMonth].Yape += total;
           else if (medioPago === 'Efectivo') monthlyData[rowMonth].Efectivo += total;
           else if (medioPago === 'Tarjeta') monthlyData[rowMonth].Tarjeta += total;
@@ -439,7 +395,6 @@ function getYearlySales(year) {
       }
     });
     
-    // Convertir a array ordenado
     const monthsArray = Object.values(monthlyData).sort((a, b) => a.month - b.month);
     
     return {
@@ -456,12 +411,9 @@ function getYearlySales(year) {
     };
   }
 }
+// MOD-009: FIN
 
-/*
-***
-09. Funciones Auxiliares - code.gs - V1.07-SV09
-***
-*/
+// MOD-010: FUNCIONES AUXILIARES [INICIO]
 function getSheet() {
   const ss = SpreadsheetApp.openByUrl(CONFIG.SHEET_URL);
   return ss.getSheetByName(CONFIG.SHEET_NAME);
@@ -482,12 +434,11 @@ function getLastValidRow(sheet) {
 }
 
 function getDayOfWeek(fecha) {
-  // fecha viene como "21/12/2025"
   const parts = fecha.split('/');
   if (parts.length !== 3) return '';
   
   const day = parseInt(parts[0]);
-  const month = parseInt(parts[1]) - 1; // JS months are 0-indexed
+  const month = parseInt(parts[1]) - 1;
   const year = parseInt(parts[2]);
   
   const date = new Date(year, month, day);
@@ -495,3 +446,28 @@ function getDayOfWeek(fecha) {
   
   return days[date.getDay()];
 }
+// MOD-010: FIN
+
+// MOD-099: NOTAS [INICIO]
+/*
+DESCRIPCIÓN:
+Backend central de MuyuReport - Dashboard de Ventas.
+Procesa datos de Google Sheets y los entrega al frontend.
+
+DEPENDENCIAS:
+- MOD-002: CONFIG contiene URL del Spreadsheet y configuración
+- MOD-010: Funciones auxiliares usadas por todos los módulos de consulta
+
+FUNCIONES PRINCIPALES:
+- getLastRecords(): Obtiene registros del último día registrado (lee últimos 200 para asegurar)
+- getSalesByDay(): Filtra ventas de un día específico con opción de filtrar por medio de pago
+- getMonthlyData(): Genera ranking top 10 de categorías por mes
+- getChartData(): Agrupa ventas por semanas (S1-S4) para gráficos
+- getYearlySales(): Consolida ventas mensuales del año con desglose por medio de pago
+
+ADVERTENCIAS:
+- Todas las funciones usan getDisplayValues() para procesar fechas como texto visual
+- getDayOfWeek() convierte string "DD/MM/YYYY" a día de la semana en español
+- Fechas procesadas asumen formato DD/MM/YYYY de Google Sheets Perú
+*/
+// MOD-099: FIN
