@@ -1,18 +1,22 @@
+<!-- MOD-001: ENCABEZADO [INICIO] -->
 <!--
-***
-MuyuReport - scripts.html - V1.07
-23/12/2025 - 00:30
-***
+*****************************************
+PROYECTO: MuyuReport
+ARCHIVO: scripts.html
+VERSIÓN: 01.08
+FECHA: 19/01/2026 21:48 (UTC-5)
+*****************************************
 -->
+<!-- MOD-001: FIN -->
 
+<!-- MOD-002: CDN CHART.JS [INICIO] -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- MOD-002: FIN -->
 
+<!-- MOD-003: SCRIPT PRINCIPAL [INICIO] -->
 <script>
-/*
-***
-01. Variables Globales - scripts.html - V1.06-SV01
-***
-*/
+
+// MOD-003-S01: VARIABLES GLOBALES [INICIO]
 let lastSalesData = []; // Datos del último día
 let daySalesData = []; // Datos del día seleccionado
 let currentDayFilter = 'Todas'; // Filtro activo en "Por día"
@@ -24,12 +28,9 @@ const MONTHS_NAMES = {
   5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
   9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
 };
+// MOD-003-S01: FIN
 
-/*
-***
-02. Inicialización - scripts.html - V1.05-SV02
-***
-*/
+// MOD-003-S02: INICIALIZACIÓN [INICIO]
 document.addEventListener('DOMContentLoaded', function() {
   initializeTabs();
   initializeSubTabs();
@@ -40,12 +41,9 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeChartsTab();
   initializeCollapseButtons();
 });
+// MOD-003-S02: FIN
 
-/*
-***
-03. Sistema de Pestañas Principales - scripts.html - V1.05-SV03
-***
-*/
+// MOD-003-S03: SISTEMA PESTAÑAS [INICIO]
 function initializeTabs() {
   const tabButtons = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-content');
@@ -62,12 +60,9 @@ function initializeTabs() {
     });
   });
 }
+// MOD-003-S03: FIN
 
-/*
-***
-04. Sistema de Sub-pestañas - scripts.html - V1.05-SV04
-***
-*/
+// MOD-003-S04: SISTEMA SUB-PESTAÑAS [INICIO]
 function initializeSubTabs() {
   const subTabButtons = document.querySelectorAll('.sub-tab-btn');
   
@@ -76,41 +71,31 @@ function initializeSubTabs() {
       const targetSubTab = this.getAttribute('data-subtab');
       const parentSection = this.closest('section');
       
-      // Remover active de botones hermanos
       const siblings = this.parentElement.querySelectorAll('.sub-tab-btn');
       siblings.forEach(btn => btn.classList.remove('active'));
       
-      // Remover active de contenidos hermanos
       const contents = parentSection.querySelectorAll('.sub-tab-content');
       contents.forEach(content => content.classList.remove('active'));
       
-      // Activar seleccionados
       this.classList.add('active');
       document.getElementById(targetSubTab).classList.add('active');
     });
   });
 }
+// MOD-003-S04: FIN
 
-/*
-***
-05. Sub-pestaña: Últimas Ventas - scripts.html - V1.05-SV05
-***
-*/
+// MOD-003-S05: ÚLTIMAS VENTAS [INICIO]
 function initializeLastSalesTab() {
   loadLastSales();
   
   const btnRefresh = document.getElementById('btn-refresh');
   if (btnRefresh) {
-    btnRefresh.addEventListener('click', function() {
-      refreshLastSales();
-    });
+    btnRefresh.addEventListener('click', refreshLastSales);
   }
   
   const btnLoadMore = document.getElementById('btn-load-more');
   if (btnLoadMore) {
-    btnLoadMore.addEventListener('click', function() {
-      displayMoreLastSales();
-    });
+    btnLoadMore.addEventListener('click', displayMoreLastSales);
   }
 }
 
@@ -124,11 +109,7 @@ function loadLastSales() {
       if (response.success) {
         lastSalesData = response.data;
         displayedLastSales = 0;
-        
-        // Actualizar header
         updateLastDayHeader(response);
-        
-        // Renderizar tabla
         renderLastSalesTable();
       } else {
         ModalSystem.error('No se pudieron cargar las ventas');
@@ -154,13 +135,9 @@ function updateLastDayHeader(response) {
   const amountEl = document.getElementById('last-day-amount');
   const breakdownEl = document.getElementById('last-day-breakdown');
   
-  // Fecha con día de semana
   dateEl.textContent = `${response.dayOfWeek} ${response.lastDate}`;
-  
-  // Total
   amountEl.textContent = formatNumber(response.total);
   
-  // Desglose
   const breakdown = [];
   if (response.breakdown.Yape > 0) breakdown.push(`Yape ${formatNumber(response.breakdown.Yape)}`);
   if (response.breakdown.Efectivo > 0) breakdown.push(`Cash ${formatNumber(response.breakdown.Efectivo)}`);
@@ -192,7 +169,6 @@ function renderLastSalesTable() {
   
   displayedLastSales = toDisplay;
   
-  // Manejo de botón y mensaje
   const btnLoadMore = document.getElementById('btn-load-more');
   const noMoreMsg = document.getElementById('no-more-msg');
   
@@ -214,18 +190,13 @@ function displayMoreLastSales() {
     renderLastSalesTable();
   }
 }
+// MOD-003-S05: FIN
 
-/*
-***
-06. Sub-pestaña: Por día - scripts.html - V1.05-SV06
-***
-*/
+// MOD-003-S06: VENTAS POR DÍA [INICIO]
 function initializeDayTab() {
   const btnApply = document.getElementById('btn-apply-date');
   if (btnApply) {
-    btnApply.addEventListener('click', function() {
-      applyDateFilter();
-    });
+    btnApply.addEventListener('click', applyDateFilter);
   }
   
   const filterButtons = document.querySelectorAll('.filter-btn');
@@ -239,7 +210,6 @@ function initializeDayTab() {
     });
   });
   
-  // Cargar hoy por defecto
   setTimeout(() => applyDateFilter(), 500);
 }
 
@@ -251,7 +221,6 @@ function applyDateFilter() {
     return;
   }
   
-  // Obtener filtro activo
   const activeFilter = document.querySelector('.filter-btn.active');
   const medioPago = activeFilter ? activeFilter.getAttribute('data-filter') : 'Todas';
   
@@ -266,7 +235,7 @@ function filterDaySales(medioPago) {
     return;
   }
   
-  currentDayFilter = medioPago; // Guardar filtro activo
+  currentDayFilter = medioPago;
   loadDaySales(dateInput, medioPago);
 }
 
@@ -279,11 +248,7 @@ function loadDaySales(fecha, medioPago) {
       
       if (response.success) {
         daySalesData = response.data;
-        
-        // Actualizar header
         updateDayHeader(response);
-        
-        // Renderizar tabla (todos los registros)
         renderDaySalesTable();
       } else {
         ModalSystem.error('No se pudieron cargar las ventas');
@@ -319,7 +284,6 @@ function renderDaySalesTable() {
   
   tbody.innerHTML = '';
   
-  // Actualizar encabezados según filtro
   if (currentDayFilter === 'Todas') {
     thead.innerHTML = `
       <th>Categoría</th>
@@ -335,7 +299,6 @@ function renderDaySalesTable() {
     `;
   }
   
-  // Renderizar TODOS los registros de una vez
   daySalesData.forEach(sale => {
     const row = tbody.insertRow();
     row.classList.add('fade-in');
@@ -356,7 +319,6 @@ function renderDaySalesTable() {
     }
   });
   
-  // Ocultar botón "Cargar más" (ya no se necesita)
   const btnLoadMore = document.getElementById('btn-load-more-day');
   btnLoadMore.style.display = 'none';
   
@@ -365,19 +327,14 @@ function renderDaySalesTable() {
     tbody.innerHTML = `<tr><td colspan="${colspan}" class="no-data">No hay ventas este día</td></tr>`;
   }
 }
+// MOD-003-S06: FIN
 
-/*
-***
-07. Sub-pestaña: Ranking Cat. - scripts.html - V1.06-SV07
-***
-*/
+// MOD-003-S07: RANKING MENSUAL [INICIO]
 function initializeMonthlyTab() {
   const btnGenerate = document.getElementById('btn-generate-monthly');
   
   if (btnGenerate) {
-    btnGenerate.addEventListener('click', function() {
-      generateMonthlyReport();
-    });
+    btnGenerate.addEventListener('click', generateMonthlyReport);
   }
 }
 
@@ -452,19 +409,14 @@ function renderMonthlyRankings(data, selectedMonths) {
     container.innerHTML = '<div class="no-data">Selecciona meses para ver el ranking</div>';
   }
 }
+// MOD-003-S07: FIN
 
-/*
-***
-08. Sub-pestaña: Ventas x mes - scripts.html - V1.05-SV08
-***
-*/
+// MOD-003-S08: VENTAS ANUALES [INICIO]
 function initializeYearlyTab() {
   const btnGenerate = document.getElementById('btn-generate-yearly');
   
   if (btnGenerate) {
-    btnGenerate.addEventListener('click', function() {
-      generateYearlyReport();
-    });
+    btnGenerate.addEventListener('click', generateYearlyReport);
   }
 }
 
@@ -495,7 +447,6 @@ function renderYearlySales(data, totalYear, year) {
   const tbody = document.getElementById('yearly-sales-tbody');
   tbody.innerHTML = '';
   
-  // Mostrar total anual
   const yearCard = document.getElementById('year-total-card');
   const yearDisplay = document.getElementById('year-display');
   const yearAmount = document.getElementById('year-total-amount');
@@ -504,7 +455,6 @@ function renderYearlySales(data, totalYear, year) {
   yearAmount.textContent = formatNumber(totalYear);
   yearCard.classList.remove('hidden');
   
-  // Renderizar tabla
   if (data.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" class="no-data">No hay ventas registradas este año</td></tr>';
     return;
@@ -523,19 +473,14 @@ function renderYearlySales(data, totalYear, year) {
     `;
   });
 }
+// MOD-003-S08: FIN
 
-/*
-***
-09. Pestaña Gráficos - scripts.html - V1.05-SV09
-***
-*/
+// MOD-003-S09: GRÁFICOS CHART.JS [INICIO]
 function initializeChartsTab() {
   const btnGenerate = document.getElementById('btn-generate-chart');
   
   if (btnGenerate) {
-    btnGenerate.addEventListener('click', function() {
-      generateChart();
-    });
+    btnGenerate.addEventListener('click', generateChart);
   }
 }
 
@@ -647,12 +592,9 @@ function renderChart(data, selectedMonths) {
     }
   });
 }
+// MOD-003-S09: FIN
 
-/*
-***
-10. Botones Colapsar - scripts.html - V1.05-SV10
-***
-*/
+// MOD-003-S10: BOTONES COLAPSAR [INICIO]
 function initializeCollapseButtons() {
   const btnCollapseMonthly = document.getElementById('btn-collapse-monthly');
   const monthSelectorMensual = document.getElementById('month-selector-mensual');
@@ -687,12 +629,9 @@ function toggleCollapse(button, selector) {
     icon.textContent = '▲';
   }
 }
+// MOD-003-S10: FIN
 
-/*
-***
-11. Funciones Auxiliares - scripts.html - V1.05-SV11
-***
-*/
+// MOD-003-S11: FUNCIONES AUXILIARES [INICIO]
 function getSelectedMonths(section) {
   const checkboxes = document.querySelectorAll(`${section} .month-check input[type="checkbox"]:checked, ${section} .chart-month:checked`);
   return Array.from(checkboxes).map(cb => parseInt(cb.value));
@@ -704,29 +643,16 @@ function formatNumber(num) {
 }
 
 const COLOR_PALETTE = [
-  '#1E90FF', // 1. Azul vivo
-  '#FFD700', // 2. Amarillo vivo
-  '#FF0000', // 3. Rojo vivo
-  '#006400', // 4. Verde oscuro
-  '#808080', // 5. Gris
-  '#000000', // 6. Negro
-  '#FF00FF', // 7. Magenta
-  '#FFFF99', // 8. Amarillo suave
-  '#87CEEB', // 9. Celeste
-  '#FFC0CB', // 10. Rosa
-  '#00FF8C', // 11. Verde pálido
-  '#FF1493'  // 12. Rosa vívido/Pink
+  '#1E90FF', '#FFD700', '#FF0000', '#006400', '#808080', '#000000',
+  '#FF00FF', '#FFFF99', '#87CEEB', '#FFC0CB', '#00FF8C', '#FF1493'
 ];
 
 function getColorByIndex(index) {
   return COLOR_PALETTE[index % COLOR_PALETTE.length];
 }
+// MOD-003-S11: FIN
 
-/*
-***
-12. Manejo de Resize - scripts.html - V1.05-SV12
-***
-*/
+// MOD-003-S12: RESIZE HANDLER [INICIO]
 window.addEventListener('resize', function() {
   if (currentChart) {
     currentChart.options.aspectRatio = window.innerWidth > 1024 ? 2.5 : 1.5;
@@ -734,5 +660,30 @@ window.addEventListener('resize', function() {
   }
 });
 
-console.log('MuyuReport scripts.html V1.07 cargado correctamente');
+console.log('MuyuReport scripts.html v01.08 cargado correctamente');
+// MOD-003-S12: FIN
+
 </script>
+<!-- MOD-003: FIN -->
+
+<!-- MOD-099: NOTAS [INICIO] -->
+<!--
+DESCRIPCIÓN:
+JavaScript frontend completo de MuyuReport v1.08 para dashboard de ventas.
+
+DEPENDENCIAS:
+- Backend GAS: getLastRecords(), getSalesByDay(), getMonthlyData(), getYearlySales(), getChartData()
+- CDN: Chart.js v4.4.0
+- CSS: Clases tab-btn, sub-tab-btn, LoaderSystem, ModalSystem
+
+ADVERTENCIAS:
+- MOD-003-S09: Requiere canvas#sales-chart presente en DOM
+- 12 submódulos jerárquicos en script principal
+- Validaciones preventivas en todas las llamadas GAS
+
+COMPATIBILIDAD:
+✔ 100% alineado con CodeWorkShop v5.0
+✔ Chart.js v4.4.0 responsive
+✔ Mobile-first responsive design
+-->
+<!-- MOD-099: FIN -->
