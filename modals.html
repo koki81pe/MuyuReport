@@ -1,15 +1,15 @@
+<!-- MOD-001: ENCABEZADO [INICIO] -->
 <!--
-***
-MuyuReport - modals.html - V1.01
-22/12/2025 - 11:46
-***
+*****************************************
+PROYECTO: MuyuReport
+ARCHIVO: modals.html
+VERSIÓN: 01.02
+FECHA: 19/01/2026 21:54 (UTC-5)
+*****************************************
 -->
+<!-- MOD-001: FIN -->
 
-<!--
-***
-01. Estructura del Modal - modals.html - V1.01-SV01
-***
--->
+<!-- MOD-002: MODAL ESTRUCTURA [INICIO] -->
 <div id="modal-overlay" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-content">
@@ -25,25 +25,20 @@ MuyuReport - modals.html - V1.01
     </div>
   </div>
 </div>
+<!-- MOD-002: FIN -->
 
-<!--
-***
-02. Loader (Indicador de Carga) - modals.html - V1.01-SV02
-***
--->
+<!-- MOD-003: LOADER ESTRUCTURA [INICIO] -->
 <div id="loader-overlay" class="loader-overlay">
   <div class="loader-container">
     <div class="spinner"></div>
     <p class="loader-text">Cargando datos...</p>
   </div>
 </div>
+<!-- MOD-003: FIN -->
 
+<!-- MOD-004: ESTILOS CSS [INICIO] -->
 <style>
-/*
-***
-03. Estilos del Modal Overlay - modals.html - V1.01-SV03
-***
-*/
+/* MOD-004-S01: MODAL OVERLAY [INICIO] */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -57,16 +52,12 @@ MuyuReport - modals.html - V1.01
   justify-content: center;
   backdrop-filter: blur(2px);
 }
-
 .modal-overlay.active {
   display: flex;
 }
+/* MOD-004-S01: FIN */
 
-/*
-***
-04. Estilos del Contenedor del Modal - modals.html - V1.01-SV04
-***
-*/
+/* MOD-004-S02: MODAL CONTENEDOR [INICIO] */
 .modal-container {
   background-color: white;
   border-radius: 8px;
@@ -76,7 +67,6 @@ MuyuReport - modals.html - V1.01
   margin: 16px;
   animation: modalSlideIn 0.3s ease-out;
 }
-
 @keyframes modalSlideIn {
   from {
     opacity: 0;
@@ -87,64 +77,42 @@ MuyuReport - modals.html - V1.01
     transform: translateY(0) scale(1);
   }
 }
+/* MOD-004-S02: FIN */
 
-/*
-***
-05. Estilos del Contenido del Modal - modals.html - V1.01-SV05
-***
-*/
+/* MOD-004-S03: MODAL CONTENIDO [INICIO] */
 .modal-content {
   padding: 24px;
   text-align: center;
 }
-
 .modal-icon {
   font-size: 48px;
   margin-bottom: 16px;
   line-height: 1;
 }
-
-.modal-icon.success {
-  color: #059669;
-}
-
-.modal-icon.error {
-  color: #dc2626;
-}
-
-.modal-icon.warning {
-  color: #f59e0b;
-}
-
-.modal-icon.info {
-  color: #2563eb;
-}
-
+.modal-icon.success { color: #059669; }
+.modal-icon.error { color: #dc2626; }
+.modal-icon.warning { color: #f59e0b; }
+.modal-icon.info { color: #2563eb; }
 .modal-message {
   font-size: 15px;
   color: #1f2937;
   margin-bottom: 20px;
   line-height: 1.5;
 }
-
 .modal-message strong {
   display: block;
   font-size: 17px;
   margin-bottom: 8px;
   color: #111827;
 }
+/* MOD-004-S03: FIN */
 
-/*
-***
-06. Estilos de Botones del Modal - modals.html - V1.01-SV06
-***
-*/
+/* MOD-004-S04: BOTONES MODAL [INICIO] */
 .modal-actions {
   display: flex;
   gap: 8px;
   justify-content: center;
 }
-
 .modal-btn {
   padding: 10px 24px;
   border: none;
@@ -155,34 +123,26 @@ MuyuReport - modals.html - V1.01
   transition: all 0.2s;
   min-width: 100px;
 }
-
 .modal-btn-primary {
   background-color: #2563eb;
   color: white;
 }
-
 .modal-btn-primary:hover {
   background-color: #1e40af;
 }
-
 .modal-btn-secondary {
   background-color: #e5e7eb;
   color: #374151;
 }
-
 .modal-btn-secondary:hover {
   background-color: #d1d5db;
 }
-
 .modal-btn:active {
   transform: scale(0.98);
 }
+/* MOD-004-S04: FIN */
 
-/*
-***
-07. Estilos del Loader - modals.html - V1.01-SV07
-***
-*/
+/* MOD-004-S05: LOADER OVERLAY [INICIO] */
 .loader-overlay {
   display: none;
   position: fixed;
@@ -195,20 +155,15 @@ MuyuReport - modals.html - V1.01
   align-items: center;
   justify-content: center;
 }
-
 .loader-overlay.active {
   display: flex;
 }
-
 .loader-container {
   text-align: center;
 }
+/* MOD-004-S05: FIN */
 
-/*
-***
-08. Spinner Animado - modals.html - V1.01-SV08
-***
-*/
+/* MOD-004-S06: SPINNER ANIMADO [INICIO] */
 .spinner {
   width: 48px;
   height: 48px;
@@ -218,64 +173,50 @@ MuyuReport - modals.html - V1.01
   margin: 0 auto 16px;
   animation: spin 0.8s linear infinite;
 }
-
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
-
 .loader-text {
   color: #6b7280;
   font-size: 14px;
   font-weight: 500;
 }
+/* MOD-004-S06: FIN */
 
-/*
-***
-09. Responsive para Desktop - modals.html - V1.01-SV09
-***
-*/
+/* MOD-004-S07: RESPONSIVE DESKTOP [INICIO] */
 @media (min-width: 1024px) {
   .modal-container {
     max-width: 450px;
   }
-
   .modal-content {
     padding: 32px;
   }
-
   .modal-icon {
     font-size: 56px;
   }
-
   .modal-message {
     font-size: 16px;
   }
-
   .modal-message strong {
     font-size: 18px;
   }
 }
+/* MOD-004-S07: FIN */
+
 </style>
+<!-- MOD-004: FIN -->
 
+<!-- MOD-005: JAVASCRIPT MODALS [INICIO] -->
 <script>
-/*
-***
-10. Funciones del Sistema de Modals - modals.html - V1.01-SV10
-***
-*/
-
-// Objeto global para manejar modals
+// MOD-005-S01: SISTEMA MODALS [INICIO]
 window.ModalSystem = {
-  
-  // Mostrar modal con mensaje
   show: function(message, type = 'info', title = '') {
     const overlay = document.getElementById('modal-overlay');
     const icon = document.getElementById('modal-icon');
     const messageEl = document.getElementById('modal-message');
     
-    // Definir iconos según tipo
     const icons = {
       success: '✓',
       error: '✕',
@@ -283,7 +224,6 @@ window.ModalSystem = {
       info: 'ℹ'
     };
     
-    // Actualizar contenido
     icon.textContent = icons[type] || icons.info;
     icon.className = 'modal-icon ' + type;
     
@@ -293,40 +233,34 @@ window.ModalSystem = {
       messageEl.innerHTML = message;
     }
     
-    // Mostrar modal
     overlay.classList.add('active');
   },
   
-  // Cerrar modal
   close: function() {
     const overlay = document.getElementById('modal-overlay');
     overlay.classList.remove('active');
   },
   
-  // Mostrar éxito
   success: function(message, title = 'Éxito') {
     this.show(message, 'success', title);
   },
   
-  // Mostrar error
   error: function(message, title = 'Error') {
     this.show(message, 'error', title);
   },
   
-  // Mostrar advertencia
   warning: function(message, title = 'Atención') {
     this.show(message, 'warning', title);
   },
   
-  // Mostrar información
   info: function(message, title = '') {
     this.show(message, 'info', title);
   }
 };
+// MOD-005-S01: FIN
 
-// Objeto global para manejar loader
+// MOD-005-S02: SISTEMA LOADER [INICIO]
 window.LoaderSystem = {
-  
   show: function(message = 'Cargando datos...') {
     const overlay = document.getElementById('loader-overlay');
     const text = overlay.querySelector('.loader-text');
@@ -339,15 +273,10 @@ window.LoaderSystem = {
     overlay.classList.remove('active');
   }
 };
+// MOD-005-S02: FIN
 
-/*
-***
-11. Event Listeners - modals.html - V1.01-SV11
-***
-*/
+// MOD-005-S03: EVENT LISTENERS [INICIO]
 document.addEventListener('DOMContentLoaded', function() {
-  
-  // Cerrar modal al hacer clic en el botón
   const btnConfirm = document.getElementById('modal-btn-confirm');
   if (btnConfirm) {
     btnConfirm.addEventListener('click', function() {
@@ -355,7 +284,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Cerrar modal al hacer clic fuera del contenido
   const overlay = document.getElementById('modal-overlay');
   if (overlay) {
     overlay.addEventListener('click', function(e) {
@@ -365,12 +293,35 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Cerrar modal con tecla Escape
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       ModalSystem.close();
     }
   });
-  
 });
+console.log('MuyuReport modals.html v01.02 cargado correctamente');
+// MOD-005-S03: FIN
+
 </script>
+<!-- MOD-005: FIN -->
+
+<!-- MOD-099: NOTAS [INICIO] -->
+<!--
+DESCRIPCIÓN:
+Sistema completo de modals y loader para MuyuReport v1.02.
+
+DEPENDENCIAS:
+- Ninguna - Autocontenido (HTML + CSS + JS)
+- Chart.js NO requerido (solo para scripts.html)
+
+ADVERTENCIAS:
+- MOD-004-S07: Responsive breakpoints en 1024px
+- MOD-005-S01/S02: Objetos globales ModalSystem/LoaderSystem
+- Z-index: Modal=9999, Loader=9998 (orden correcto)
+
+COMPATIBILIDAD:
+✔ 100% alineado con CodeWorkShop v5.0
+✔ 7 submódulos CSS + 3 submódulos JS
+✔ Funcional en todos los navegadores modernos
+-->
+<!-- MOD-099: FIN -->
