@@ -1,10 +1,15 @@
+<!-- MOD-001: ENCABEZADO [INICIO] -->
 <!--
-***
-MuyuReport - home.html - V1.05
-23/12/2025 - 00:29
-***
+*****************************************
+PROYECTO: MuyuReport
+ARCHIVO: home.html
+VERSIÓN: 01.06
+FECHA: 19/01/2026 11:45 (UTC-5)
+*****************************************
 -->
+<!-- MOD-001: FIN -->
 
+<!-- MOD-002: APERTURA HTML [INICIO] -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -14,395 +19,353 @@ MuyuReport - home.html - V1.05
   <?!= include('style'); ?>
 </head>
 <body>
+<!-- MOD-002: FIN -->
 
-  <!--
-  ***
-  01. Header Principal - home.html - V1.04-SV01
-  ***
-  -->
-  <header class="main-header">
-    <h1>MuyuReport</h1>
-    <p class="subtitle">Dashboard de Ventas</p>
-  </header>
+<!-- MOD-003: HEADER PRINCIPAL [INICIO] -->
+<header class="main-header">
+  <h1>MuyuReport</h1>
+  <p class="subtitle">Dashboard de Ventas</p>
+</header>
+<!-- MOD-003: FIN -->
 
-  <!--
-  ***
-  02. Navegación Principal - home.html - V1.04-SV02
-  ***
-  -->
-  <nav class="tabs-nav">
-    <button class="tab-btn active" data-tab="diarias">Diarias</button>
-    <button class="tab-btn" data-tab="mensual">Mensual</button>
-    <button class="tab-btn" data-tab="graficos">Gráficos</button>
+<!-- MOD-004: NAVEGACIÓN PRINCIPAL [INICIO] -->
+<nav class="tabs-nav">
+  <button class="tab-btn active" data-tab="diarias">Diarias</button>
+  <button class="tab-btn" data-tab="mensual">Mensual</button>
+  <button class="tab-btn" data-tab="graficos">Gráficos</button>
+</nav>
+<!-- MOD-004: FIN -->
+
+<!-- MOD-005: CONTAINER PRINCIPAL [INICIO] -->
+<main class="main-container">
+<!-- MOD-005: FIN -->
+
+<!-- MOD-006: PESTAÑA DIARIAS [INICIO] -->
+<section id="diarias" class="tab-content active">
+  
+  <nav class="sub-tabs-nav">
+    <button class="sub-tab-btn active" data-subtab="ultimas-ventas">Últimas Ventas</button>
+    <button class="sub-tab-btn" data-subtab="por-dia">Por día</button>
   </nav>
 
-  <!--
-  ***
-  03. Contenedor Principal - home.html - V1.04-SV03
-  ***
-  -->
-  <main class="main-container">
-
-    <!--
-    ***
-    04. PESTAÑA: DIARIAS - home.html - V1.04-SV04
-    ***
-    -->
-    <section id="diarias" class="tab-content active">
-      
-      <!-- Sub-pestañas de Diarias -->
-      <nav class="sub-tabs-nav">
-        <button class="sub-tab-btn active" data-subtab="ultimas-ventas">Últimas Ventas</button>
-        <button class="sub-tab-btn" data-subtab="por-dia">Por día</button>
-      </nav>
-
-      <!--
-      ***
-      04a. SUB-PESTAÑA: Últimas Ventas - home.html - V1.04-SV04a
-      ***
-      -->
-      <div id="ultimas-ventas" class="sub-tab-content active">
-        
-        <!-- Total del último día -->
-        <div class="last-day-total">
-          <div class="total-card">
-            <span class="total-label">Total del último día</span>
-            <span class="total-date" id="last-day-date-full">Lunes 22/12/2025</span>
-            <div class="total-breakdown">
-              <span class="total-amount" id="last-day-amount">0.00</span>
-              <span class="breakdown-text" id="last-day-breakdown"></span>
-            </div>
-          </div>
-          <button class="btn-refresh" id="btn-refresh">
-            <span class="refresh-icon">↻</span> Refrescar
-          </button>
+  <div id="ultimas-ventas" class="sub-tab-content active">
+    
+    <div class="last-day-total">
+      <div class="total-card">
+        <span class="total-label">Total del último día</span>
+        <span class="total-date" id="last-day-date-full">Lunes 22/12/2025</span>
+        <div class="total-breakdown">
+          <span class="total-amount" id="last-day-amount">0.00</span>
+          <span class="breakdown-text" id="last-day-breakdown"></span>
         </div>
-
-        <!-- Tabla de últimas ventas -->
-        <div class="sales-table-container">
-          <table class="sales-table" id="sales-table">
-            <thead>
-              <tr>
-                <th>Categoría</th>
-                <th>Producto</th>
-                <th>Medio</th>
-                <th>Monto</th>
-              </tr>
-            </thead>
-            <tbody id="sales-tbody">
-              <!-- Registros se cargan dinámicamente -->
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Botón cargar más / Mensaje -->
-        <div class="load-more-container">
-          <button class="btn-load-more" id="btn-load-more">
-            Cargar 10 más
-          </button>
-          <p class="no-more-msg hidden" id="no-more-msg">No hay más ventas este día</p>
-        </div>
-
       </div>
-
-      <!--
-      ***
-      04b. SUB-PESTAÑA: Por día - home.html - V1.04-SV04b
-      ***
-      -->
-      <div id="por-dia" class="sub-tab-content">
-        
-        <!-- Selector de fecha -->
-        <div class="date-selector">
-          <label for="date-input">Fecha:</label>
-          <input type="text" id="date-input" placeholder="DD/MM/AAAA" maxlength="10">
-          <button class="btn-apply" id="btn-apply-date">Aplicar</button>
-        </div>
-
-        <!-- Filtros por medio de pago -->
-        <div class="payment-filters">
-          <button class="filter-btn active" data-filter="Todas">Todas</button>
-          <button class="filter-btn" data-filter="Yape">Yape</button>
-          <button class="filter-btn" data-filter="Efectivo">Cash</button>
-          <button class="filter-btn" data-filter="Tarjeta">Card</button>
-        </div>
-
-        <!-- Total del día -->
-        <div class="day-total-card">
-          <span class="total-label">Total del día</span>
-          <span class="total-date" id="day-date-full">Lunes 22/12/2025</span>
-          <div class="total-breakdown">
-            <span class="total-amount" id="day-amount">0.00</span>
-            <span class="breakdown-text" id="day-breakdown"></span>
-          </div>
-        </div>
-
-        <!-- Tabla de ventas del día -->
-        <div class="sales-table-container">
-          <table class="sales-table" id="day-sales-table">
-            <thead>
-              <tr>
-                <th>Categoría</th>
-                <th>Producto</th>
-                <th>Monto</th>
-              </tr>
-            </thead>
-            <tbody id="day-sales-tbody">
-              <!-- Registros se cargan dinámicamente -->
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-
-    </section>
-
-    <!--
-    ***
-    05. PESTAÑA: MENSUAL - home.html - V1.04-SV05
-    ***
-    -->
-    <section id="mensual" class="tab-content">
-      
-      <!-- Sub-pestañas de Mensual -->
-      <nav class="sub-tabs-nav">
-        <button class="sub-tab-btn active" data-subtab="ranking-cat">Ranking Cat.</button>
-        <button class="sub-tab-btn" data-subtab="ventas-mes">Ventas x mes</button>
-      </nav>
-
-      <!--
-      ***
-      05a. SUB-PESTAÑA: Ranking Cat. - home.html - V1.04-SV05a
-      ***
-      -->
-      <div id="ranking-cat" class="sub-tab-content active">
-        
-        <!-- Selector de año -->
-        <div class="year-selector">
-          <label for="year-input">Año:</label>
-          <input type="number" id="year-input" value="2024" min="2020" max="2030">
-        </div>
-
-        <!-- Botón colapsar meses -->
-        <button class="btn-collapse-months" id="btn-collapse-monthly">
-          <span class="collapse-icon">▼</span> Seleccionar meses
-        </button>
-
-        <!-- Selector de meses con checkboxes -->
-        <div class="month-selector" id="month-selector-mensual">
-          <label class="month-check">
-            <input type="checkbox" value="1"> Enero
-          </label>
-          <label class="month-check">
-            <input type="checkbox" value="2"> Febrero
-          </label>
-          <label class="month-check">
-            <input type="checkbox" value="3"> Marzo
-          </label>
-          <label class="month-check">
-            <input type="checkbox" value="4"> Abril
-          </label>
-          <label class="month-check">
-            <input type="checkbox" value="5"> Mayo
-          </label>
-          <label class="month-check">
-            <input type="checkbox" value="6"> Junio
-          </label>
-          <label class="month-check">
-            <input type="checkbox" value="7"> Julio
-          </label>
-          <label class="month-check">
-            <input type="checkbox" value="8"> Agosto
-          </label>
-          <label class="month-check">
-            <input type="checkbox" value="9"> Septiembre
-          </label>
-          <label class="month-check">
-            <input type="checkbox" value="10"> Octubre
-          </label>
-          <label class="month-check">
-            <input type="checkbox" value="11"> Noviembre
-          </label>
-          <label class="month-check">
-            <input type="checkbox" value="12"> Diciembre
-          </label>
-        </div>
-
-        <!-- Botón para generar reporte -->
-        <div class="action-container">
-          <button class="btn-generate" id="btn-generate-monthly">
-            Ver Ranking Mensual
-          </button>
-        </div>
-
-        <!-- Contenedor de rankings mensuales -->
-        <div class="monthly-rankings" id="monthly-rankings">
-          <!-- Rankings se cargan dinámicamente -->
-        </div>
-
-      </div>
-
-      <!--
-      ***
-      05b. SUB-PESTAÑA: Ventas x mes - home.html - V1.04-SV05b
-      ***
-      -->
-      <div id="ventas-mes" class="sub-tab-content">
-        
-        <!-- Selector de año -->
-        <div class="year-selector">
-          <label for="year-input-ventas">Año:</label>
-          <input type="number" id="year-input-ventas" value="2024" min="2020" max="2030">
-        </div>
-
-        <!-- Botón para generar reporte -->
-        <div class="action-container">
-          <button class="btn-generate" id="btn-generate-yearly">
-            Ver Ventas del Año
-          </button>
-        </div>
-
-        <!-- Total anual -->
-        <div class="year-total-card hidden" id="year-total-card">
-          <span class="year-total-label">Total del año <span id="year-display">2025</span>:</span>
-          <span class="year-total-amount" id="year-total-amount">0.00</span>
-        </div>
-
-        <!-- Tabla de ventas por mes -->
-        <div class="sales-table-container">
-          <table class="sales-table" id="yearly-sales-table">
-            <thead>
-              <tr>
-                <th>Mes</th>
-                <th>Yape</th>
-                <th>Cash</th>
-                <th>Card</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody id="yearly-sales-tbody">
-              <!-- Registros se cargan dinámicamente -->
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-
-    </section>
-
-    <!--
-    ***
-    06. PESTAÑA: GRÁFICOS - home.html - V1.04-SV06
-    ***
-    -->
-    <section id="graficos" class="tab-content">
-      
-      <!-- Selector de año -->
-      <div class="year-selector">
-        <label for="chart-year-input">Año:</label>
-        <input type="number" id="chart-year-input" value="2024" min="2020" max="2030">
-      </div>
-
-      <!-- Botón colapsar meses -->
-      <button class="btn-collapse-months" id="btn-collapse-chart">
-        <span class="collapse-icon">▼</span> Seleccionar meses
+      <button class="btn-refresh" id="btn-refresh">
+        <span class="refresh-icon">↻</span> Refrescar
       </button>
+    </div>
 
-      <!-- Selector de meses -->
-      <div class="month-selector" id="month-selector-graficos">
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="1"> Enero
-        </label>
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="2"> Febrero
-        </label>
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="3"> Marzo
-        </label>
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="4"> Abril
-        </label>
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="5"> Mayo
-        </label>
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="6"> Junio
-        </label>
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="7"> Julio
-        </label>
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="8"> Agosto
-        </label>
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="9"> Septiembre
-        </label>
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="10"> Octubre
-        </label>
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="11"> Noviembre
-        </label>
-        <label class="month-check">
-          <input type="checkbox" class="chart-month" value="12"> Diciembre
-        </label>
+    <div class="sales-table-container">
+      <table class="sales-table" id="sales-table">
+        <thead>
+          <tr>
+            <th>Categoría</th>
+            <th>Producto</th>
+            <th>Medio</th>
+            <th>Monto</th>
+          </tr>
+        </thead>
+        <tbody id="sales-tbody">
+        </tbody>
+      </table>
+    </div>
+
+    <div class="load-more-container">
+      <button class="btn-load-more" id="btn-load-more">
+        Cargar 10 más
+      </button>
+      <p class="no-more-msg hidden" id="no-more-msg">No hay más ventas este día</p>
+    </div>
+
+  </div>
+
+  <div id="por-dia" class="sub-tab-content">
+    
+    <div class="date-selector">
+      <label for="date-input">Fecha:</label>
+      <input type="text" id="date-input" placeholder="DD/MM/AAAA" maxlength="10">
+      <button class="btn-apply" id="btn-apply-date">Aplicar</button>
+    </div>
+
+    <div class="payment-filters">
+      <button class="filter-btn active" data-filter="Todas">Todas</button>
+      <button class="filter-btn" data-filter="Yape">Yape</button>
+      <button class="filter-btn" data-filter="Efectivo">Cash</button>
+      <button class="filter-btn" data-filter="Tarjeta">Card</button>
+    </div>
+
+    <div class="day-total-card">
+      <span class="total-label">Total del día</span>
+      <span class="total-date" id="day-date-full">Lunes 22/12/2025</span>
+      <div class="total-breakdown">
+        <span class="total-amount" id="day-amount">0.00</span>
+        <span class="breakdown-text" id="day-breakdown"></span>
       </div>
+    </div>
 
-      <!-- Botón para generar gráfico -->
-      <div class="action-container">
-        <button class="btn-generate" id="btn-generate-chart">
-          Generar Gráfico
-        </button>
-      </div>
+    <div class="sales-table-container">
+      <table class="sales-table" id="day-sales-table">
+        <thead>
+          <tr>
+            <th>Categoría</th>
+            <th>Producto</th>
+            <th>Monto</th>
+          </tr>
+        </thead>
+        <tbody id="day-sales-tbody">
+        </tbody>
+      </table>
+    </div>
 
-      <!-- Contenedor del gráfico -->
-      <div class="chart-container">
-        <canvas id="sales-chart"></canvas>
-      </div>
+  </div>
 
-    </section>
+</section>
+<!-- MOD-006: FIN -->
 
-  </main>
+<!-- MOD-007: PESTAÑA MENSUAL [INICIO] -->
+<section id="mensual" class="tab-content">
+  
+  <nav class="sub-tabs-nav">
+    <button class="sub-tab-btn active" data-subtab="ranking-cat">Ranking Cat.</button>
+    <button class="sub-tab-btn" data-subtab="ventas-mes">Ventas x mes</button>
+  </nav>
 
-  <!--
-  ***
-  07. Modals y Scripts - home.html - V1.04-SV07
-  ***
-  -->
-  <?!= include('modals'); ?>
-  <?!= include('scripts'); ?>
-
-  <!--
-  ***
-  08. Script de Año Dinámico - home.html - V1.04-SV08
-  ***
-  -->
-  <script>
-    // Establecer año actual dinámicamente
-    const currentYear = new Date().getFullYear();
+  <div id="ranking-cat" class="sub-tab-content active">
     
-    // Pestaña Mensual - Ranking
-    document.getElementById('year-input').value = currentYear;
-    document.getElementById('year-input').min = currentYear - 5;
-    document.getElementById('year-input').max = currentYear + 5;
-    
-    // Pestaña Mensual - Ventas x mes
-    document.getElementById('year-input-ventas').value = currentYear;
-    document.getElementById('year-input-ventas').min = currentYear - 5;
-    document.getElementById('year-input-ventas').max = currentYear + 5;
-    
-    // Pestaña Gráficos
-    document.getElementById('chart-year-input').value = currentYear;
-    document.getElementById('chart-year-input').min = currentYear - 5;
-    document.getElementById('chart-year-input').max = currentYear + 5;
-    
-    // Establecer fecha de hoy en "Por día"
-    const today = new Date();
-    const dd = String(today.getDate()).padStart(2, '0');
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const yyyy = today.getFullYear();
-    document.getElementById('date-input').value = `${dd}/${mm}/${yyyy}`;
-  </script>
+    <div class="year-selector">
+      <label for="year-input">Año:</label>
+      <input type="number" id="year-input" value="2024" min="2020" max="2030">
+    </div>
 
+    <button class="btn-collapse-months" id="btn-collapse-monthly">
+      <span class="collapse-icon">▼</span> Seleccionar meses
+    </button>
+
+    <div class="month-selector" id="month-selector-mensual">
+      <label class="month-check">
+        <input type="checkbox" value="1"> Enero
+      </label>
+      <label class="month-check">
+        <input type="checkbox" value="2"> Febrero
+      </label>
+      <label class="month-check">
+        <input type="checkbox" value="3"> Marzo
+      </label>
+      <label class="month-check">
+        <input type="checkbox" value="4"> Abril
+      </label>
+      <label class="month-check">
+        <input type="checkbox" value="5"> Mayo
+      </label>
+      <label class="month-check">
+        <input type="checkbox" value="6"> Junio
+      </label>
+      <label class="month-check">
+        <input type="checkbox" value="7"> Julio
+      </label>
+      <label class="month-check">
+        <input type="checkbox" value="8"> Agosto
+      </label>
+      <label class="month-check">
+        <input type="checkbox" value="9"> Septiembre
+      </label>
+      <label class="month-check">
+        <input type="checkbox" value="10"> Octubre
+      </label>
+      <label class="month-check">
+        <input type="checkbox" value="11"> Noviembre
+      </label>
+      <label class="month-check">
+        <input type="checkbox" value="12"> Diciembre
+      </label>
+    </div>
+
+    <div class="action-container">
+      <button class="btn-generate" id="btn-generate-monthly">
+        Ver Ranking Mensual
+      </button>
+    </div>
+
+    <div class="monthly-rankings" id="monthly-rankings">
+    </div>
+
+  </div>
+
+  <div id="ventas-mes" class="sub-tab-content">
+    
+    <div class="year-selector">
+      <label for="year-input-ventas">Año:</label>
+      <input type="number" id="year-input-ventas" value="2024" min="2020" max="2030">
+    </div>
+
+    <div class="action-container">
+      <button class="btn-generate" id="btn-generate-yearly">
+        Ver Ventas del Año
+      </button>
+    </div>
+
+    <div class="year-total-card hidden" id="year-total-card">
+      <span class="year-total-label">Total del año <span id="year-display">2025</span>:</span>
+      <span class="year-total-amount" id="year-total-amount">0.00</span>
+    </div>
+
+    <div class="sales-table-container">
+      <table class="sales-table" id="yearly-sales-table">
+        <thead>
+          <tr>
+            <th>Mes</th>
+            <th>Yape</th>
+            <th>Cash</th>
+            <th>Card</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="yearly-sales-tbody">
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</section>
+<!-- MOD-007: FIN -->
+
+<!-- MOD-008: PESTAÑA GRÁFICOS [INICIO] -->
+<section id="graficos" class="tab-content">
+  
+  <div class="year-selector">
+    <label for="chart-year-input">Año:</label>
+    <input type="number" id="chart-year-input" value="2024" min="2020" max="2030">
+  </div>
+
+  <button class="btn-collapse-months" id="btn-collapse-chart">
+    <span class="collapse-icon">▼</span> Seleccionar meses
+  </button>
+
+  <div class="month-selector" id="month-selector-graficos">
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="1"> Enero
+    </label>
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="2"> Febrero
+    </label>
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="3"> Marzo
+    </label>
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="4"> Abril
+    </label>
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="5"> Mayo
+    </label>
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="6"> Junio
+    </label>
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="7"> Julio
+    </label>
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="8"> Agosto
+    </label>
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="9"> Septiembre
+    </label>
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="10"> Octubre
+    </label>
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="11"> Noviembre
+    </label>
+    <label class="month-check">
+      <input type="checkbox" class="chart-month" value="12"> Diciembre
+    </label>
+  </div>
+
+  <div class="action-container">
+    <button class="btn-generate" id="btn-generate-chart">
+      Generar Gráfico
+    </button>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="sales-chart"></canvas>
+  </div>
+
+</section>
+<!-- MOD-008: FIN -->
+
+<!-- MOD-009: CIERRE CONTAINER [INICIO] -->
+</main>
+<!-- MOD-009: FIN -->
+
+<!-- MOD-010: INCLUDES EXTERNOS [INICIO] -->
+<?!= include('modals'); ?>
+<?!= include('scripts'); ?>
+<!-- MOD-010: FIN -->
+
+<!-- MOD-011: SCRIPT AÑO DINÁMICO [INICIO] -->
+<script>
+// Establecer año actual dinámicamente
+const currentYear = new Date().getFullYear();
+
+// Pestaña Mensual - Ranking
+document.getElementById('year-input').value = currentYear;
+document.getElementById('year-input').min = currentYear - 5;
+document.getElementById('year-input').max = currentYear + 5;
+
+// Pestaña Mensual - Ventas x mes
+document.getElementById('year-input-ventas').value = currentYear;
+document.getElementById('year-input-ventas').min = currentYear - 5;
+document.getElementById('year-input-ventas').max = currentYear + 5;
+
+// Pestaña Gráficos
+document.getElementById('chart-year-input').value = currentYear;
+document.getElementById('chart-year-input').min = currentYear - 5;
+document.getElementById('chart-year-input').max = currentYear + 5;
+
+// Establecer fecha de hoy en "Por día"
+const today = new Date();
+const dd = String(today.getDate()).padStart(2, '0');
+const mm = String(today.getMonth() + 1).padStart(2, '0');
+const yyyy = today.getFullYear();
+document.getElementById('date-input').value = `${dd}/${mm}/${yyyy}`;
+</script>
+<!-- MOD-011: FIN -->
+
+<!-- MOD-012: CÓDIGO DE CIERRE [INICIO] -->
 </body>
 </html>
+<!-- MOD-012: FIN -->
+
+<!-- MOD-099: NOTAS [INICIO] -->
+<!--
+DESCRIPCIÓN:
+Página principal de MuyuReport - Dashboard de Ventas.
+Estructura HTML con 3 pestañas principales: Diarias, Mensual y Gráficos.
+
+DEPENDENCIAS:
+- style.html: Estilos CSS del dashboard
+- modals.html: Modales de carga y errores
+- scripts.html: Lógica JavaScript del dashboard
+
+ESTRUCTURA:
+- MOD-006: Pestaña Diarias con sub-pestañas "Últimas Ventas" y "Por día"
+- MOD-007: Pestaña Mensual con sub-pestañas "Ranking Cat." y "Ventas x mes"
+- MOD-008: Pestaña Gráficos con selector de meses y canvas Chart.js
+- MOD-011: Script inline establece año dinámico y fecha actual
+
+ADVERTENCIAS:
+- MOD-011 debe ejecutarse después de cargar el DOM
+- Los selectores de año usan rango dinámico (currentYear ±5)
+- Input de fecha usa formato DD/MM/AAAA
+-->
+<!-- MOD-099: FIN -->
