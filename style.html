@@ -1,16 +1,17 @@
+<!-- MOD-001: ENCABEZADO [INICIO] -->
 <!--
-***
-MuyuReport - style.html - V1.03
-22/12/2025 - 11:46
-***
+*****************************************
+PROYECTO: MuyuReport
+ARCHIVO: style.html
+VERSIÓN: 01.04
+FECHA: 19/01/2026 12:05 (UTC-5)
+*****************************************
 -->
+<!-- MOD-001: FIN -->
 
+<!-- MOD-002: ESTILOS CSS [INICIO] -->
 <style>
-/*
-***
-01. Reset y Variables Globales - style.html - V1.03-SV01
-***
-*/
+/* MOD-002-S01: RESET Y VARIABLES GLOBALES [INICIO] */
 * {
   margin: 0;
   padding: 0;
@@ -35,12 +36,9 @@ MuyuReport - style.html - V1.03
   --padding-card: 12px;
   --gap-base: 8px;
 }
+/* MOD-002-S01: FIN */
 
-/*
-***
-02. Estilos Base - style.html - V1.03-SV02
-***
-*/
+/* MOD-002-S02: ESTILOS BASE [INICIO] */
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   background-color: var(--bg-gray);
@@ -48,12 +46,9 @@ body {
   line-height: 1.5;
   font-size: 14px;
 }
+/* MOD-002-S02: FIN */
 
-/*
-***
-03. Header Principal - style.html - V1.03-SV03
-***
-*/
+/* MOD-002-S03: HEADER PRINCIPAL [INICIO] */
 .main-header {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: var(--white);
@@ -72,12 +67,9 @@ body {
   font-size: 12px;
   opacity: 0.9;
 }
+/* MOD-002-S03: FIN */
 
-/*
-***
-04. Navegación Principal - style.html - V1.03-SV04
-***
-*/
+/* MOD-002-S04: NAVEGACIÓN PRINCIPAL [INICIO] */
 .tabs-nav {
   display: flex;
   background-color: var(--white);
@@ -110,12 +102,9 @@ body {
   border-bottom-color: var(--primary-color);
   background-color: var(--white);
 }
+/* MOD-002-S04: FIN */
 
-/*
-***
-05. Sub-pestañas - style.html - V1.03-SV05
-***
-*/
+/* MOD-002-S05: SUB-PESTAÑAS [INICIO] */
 .sub-tabs-nav {
   display: flex;
   background-color: var(--bg-gray);
@@ -157,12 +146,9 @@ body {
 .sub-tab-content.active {
   display: block;
 }
+/* MOD-002-S05: FIN */
 
-/*
-***
-06. Contenedor Principal - style.html - V1.03-SV06
-***
-*/
+/* MOD-002-S06: CONTENEDOR PRINCIPAL [INICIO] */
 .main-container {
   padding: var(--padding-base);
   max-width: 100%;
@@ -176,12 +162,9 @@ body {
 .tab-content.active {
   display: block;
 }
+/* MOD-002-S06: FIN */
 
-/*
-***
-07. Total del Último Día - style.html - V1.03-SV07
-***
-*/
+/* MOD-002-S07: TOTAL DEL ÚLTIMO DÍA [INICIO] */
 .last-day-total,
 .day-total-card {
   background-color: var(--white);
@@ -274,12 +257,9 @@ body {
 .btn-refresh:hover .refresh-icon {
   transform: rotate(180deg);
 }
+/* MOD-002-S07: FIN */
 
-/*
-***
-08. Selector de Fecha y Filtros - style.html - V1.03-SV08
-***
-*/
+/* MOD-002-S08: SELECTOR DE FECHA Y FILTROS [INICIO] */
 .date-selector {
   background-color: var(--white);
   padding: var(--padding-card);
@@ -364,12 +344,9 @@ body {
   color: var(--white);
   border-color: var(--primary-color);
 }
+/* MOD-002-S08: FIN */
 
-/*
-***
-09. Tabla de Ventas - style.html - V1.03-SV09
-***
-*/
+/* MOD-002-S09: TABLA DE VENTAS [INICIO] */
 .sales-table-container {
   background-color: var(--white);
   border-radius: 6px;
@@ -420,12 +397,9 @@ body {
   color: var(--success-color);
   text-align: right;
 }
+/* MOD-002-S09: FIN */
 
-/*
-***
-10. Botón Cargar Más y Mensajes - style.html - V1.03-SV10
-***
-*/
+/* MOD-002-S10: BOTÓN CARGAR MÁS Y MENSAJES [INICIO] */
 .load-more-container {
   text-align: center;
 }
@@ -459,12 +433,9 @@ body {
   font-style: italic;
   margin-top: 8px;
 }
+/* MOD-002-S10: FIN */
 
-/*
-***
-11. Selector de Año y Meses - style.html - V1.03-SV11
-***
-*/
+/* MOD-002-S11: SELECTOR DE AÑO Y MESES [INICIO] */
 .year-selector {
   background-color: var(--white);
   padding: var(--padding-card);
@@ -602,12 +573,9 @@ body {
 .btn-generate:active {
   transform: scale(0.98);
 }
+/* MOD-002-S11: FIN */
 
-/*
-***
-12. Rankings Mensuales - style.html - V1.03-SV12
-***
-*/
+/* MOD-002-S12: RANKINGS MENSUALES [INICIO] */
 .monthly-rankings {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -685,12 +653,9 @@ body {
   padding: 8px 6px;
   border-radius: 4px;
 }
+/* MOD-002-S12: FIN */
 
-/*
-***
-13. Ventas Anuales - style.html - V1.03-SV13
-***
-*/
+/* MOD-002-S13: VENTAS ANUALES [INICIO] */
 .year-total-card {
   background-color: var(--white);
   padding: var(--padding-card);
@@ -713,12 +678,9 @@ body {
   font-weight: 700;
   color: var(--success-color);
 }
+/* MOD-002-S13: FIN */
 
-/*
-***
-14. Gráficos - style.html - V1.03-SV14
-***
-*/
+/* MOD-002-S14: GRÁFICOS [INICIO] */
 .chart-container {
   background-color: var(--white);
   padding: 16px;
@@ -731,12 +693,9 @@ body {
   max-width: 100%;
   height: auto !important;
 }
+/* MOD-002-S14: FIN */
 
-/*
-***
-15. Responsive Desktop - style.html - V1.03-SV15
-***
-*/
+/* MOD-002-S15: RESPONSIVE DESKTOP [INICIO] */
 @media (min-width: 1024px) {
   :root {
     --padding-base: 16px;
@@ -801,12 +760,9 @@ body {
     font-size: 32px;
   }
 }
+/* MOD-002-S15: FIN */
 
-/*
-***
-16. Estados y Utilidades - style.html - V1.03-SV16
-***
-*/
+/* MOD-002-S16: ESTADOS Y UTILIDADES [INICIO] */
 .loading {
   opacity: 0.6;
   pointer-events: none;
@@ -857,4 +813,32 @@ body {
   margin-bottom: 12px;
   opacity: 0.5;
 }
+/* MOD-002-S16: FIN */
 </style>
+<!-- MOD-002: FIN -->
+
+<!-- MOD-099: NOTAS [INICIO] -->
+<!--
+DESCRIPCIÓN:
+Hoja de estilos CSS principal para MuyuReport.
+Sistema de reportes con diseño responsive y variables CSS personalizadas.
+
+ESTRUCTURA:
+16 submódulos CSS organizados por componentes y funcionalidades.
+
+SUBMÓDULOS:
+S01: Reset y variables globales
+S02: Estilos base
+S03-S06: Componentes de navegación y layout
+S07-S13: Componentes de visualización de datos
+S14: Gráficos
+S15: Media queries responsive
+S16: Utilidades y animaciones
+
+DEPENDENCIAS:
+Ninguna (CSS puro sin frameworks externos)
+
+RESPONSIVE:
+Mobile-first design con breakpoint desktop a 1024px
+-->
+<!-- MOD-099: FIN -->
